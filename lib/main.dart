@@ -3,6 +3,7 @@ import 'package:Bibly/services/config_api_service.dart';
 import 'package:Bibly/services/notification_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/bible_api_service.dart';
@@ -15,6 +16,7 @@ void main() async {
   await Firebase.initializeApp();
   ConfigApiService().getRemoteConfig();
 
+  await MobileAds.instance.initialize();
   await NotificationService().init();
   await BibleApiService.init();
 

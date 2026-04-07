@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import '../model/bible_models.dart';
 import '../providers/reading_settings.dart';
@@ -41,9 +42,18 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
   final Map<String, bool>   _aiLoading  = {};
 
   // ── TTS ──────────────────────────────────────────────
-  final FlutterTts _tts       = FlutterTts();
-  bool _isSpeaking    = false;
-  bool _verseIsPlaying = false;  // 절 하나가 재생 중인지 추적
+  final FlutterTts _tts        = FlutterTts();
+  bool _isSpeaking             = false;
+  bool _verseIsPlaying         = false;
+
+  // ── AdMob 배너 ──────────────────────────────────────
+  BannerAd? _bannerAd;
+  bool      _isBannerAdReady = false;
+
+  // 테스트 ID — 출시 전 실제 ID로 교체
+  // Android: ca-app-pub-3940256099942544/6300978111
+  // iOS:     ca-app-pub-3940256099942544/2934735716
+  static const String _adUnitId = 'ca-app-pub-3940256099942544/6300978111';
 
   @override
   void initState() {
@@ -51,7 +61,31 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
     _currentChapter = widget.chapterNumber;
     _initTts();
     _loadChapter();
+    _loadBannerAd(); // 배너 로드
   }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: _adUnitId,
+      size: AdSize.banner, // 320×50
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) => setState(() => _isBannerAdReady = true),
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+          _bannerAd = null;
+        },
+      ),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _tts.stop();
+    _bannerAd?.dispose(); // ✅ 메모리 해제
+    super.dispose();
+  }
+  // ─────────────────────────────────────────────────────
 
   Future<void> _initTts() async {
     await _tts.setLanguage('ko-KR');
@@ -60,20 +94,17 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
     await _tts.setPitch(0.88);
     await _tts.setVoice({'name': 'ko-kr-x-kod-local', 'locale': 'ko-KR'});
 
-    _tts.setCompletionHandler(() {
-      _verseIsPlaying = false;
-    });
+    _tts.setCompletionHandler(() { _verseIsPlaying = false; });
     _tts.setErrorHandler((_) {
       _verseIsPlaying = false;
       if (mounted) setState(() => _isSpeaking = false);
     });
   }
 
-  // 쉼표·마침표 뒤에 짧은 공백 삽입해서 자연스럽게 호흡
   String _addBreaths(String text) {
     return text
-        .replaceAll(RegExp(r'([,，、])'), r'\1  ')   // 쉼표 뒤 짧은 숨
-        .replaceAll(RegExp(r'([.。!！?？])'), r'\1   '); // 문장 끝 조금 더 쉼
+        .replaceAll(RegExp(r'([,，、])'), r'\1  ')
+        .replaceAll(RegExp(r'([.。!！?？])'), r'\1   ');
   }
 
   Future<void> _toggleChapterSpeak() async {
@@ -88,33 +119,20 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
 
     for (final verse in _chapter!.verses) {
       if (!_isSpeaking) break;
-
       final text = _addBreaths(verse.text);
-
-      // 이 절이 끝날 때까지 기다리는 Completer
       final completer = Completer<void>();
       _tts.setCompletionHandler(() => completer.complete());
       _tts.setErrorHandler((_) {
         if (!completer.isCompleted) completer.complete();
         if (mounted) setState(() => _isSpeaking = false);
       });
-
       await _tts.speak(text);
-      await completer.future;  // 이 절 읽기 완료까지 대기
-
-      // 절 사이 1.5초 휴식
+      await completer.future;
       if (_isSpeaking) await Future.delayed(const Duration(milliseconds: 1500));
     }
 
     if (mounted) setState(() => _isSpeaking = false);
   }
-
-  @override
-  void dispose() {
-    _tts.stop();
-    super.dispose();
-  }
-  // ─────────────────────────────────────────────────────
 
   Future<void> _loadChapter() async {
     setState(() {
@@ -123,7 +141,6 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
       _selectedVerseId = null;
     });
 
-    // 장 이동 시 재생 중이면 정지
     await _tts.stop();
     setState(() => _isSpeaking = false);
 
@@ -309,8 +326,8 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
                 _TopBar(
                   book:          widget.book,
                   chapterNumber: _currentChapter,
-                  isSpeaking:    _isSpeaking,        // ✅
-                  onSpeakTap:    _toggleChapterSpeak, // ✅
+                  isSpeaking:    _isSpeaking,
+                  onSpeakTap:    _toggleChapterSpeak,
                   onSettingsTap: () => _showSettingsSheet(context),
                   isFavorite:    _isFavorite,
                   onFavoriteTap: _toggleFavorite,
@@ -350,6 +367,16 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
                     ),
                   ),
                 ),
+
+                // 배너 광고 — 장 이동 버튼 바로 위
+                if (_isBannerAdReady && _bannerAd != null)
+                  Container(
+                    width:  _bannerAd!.size.width.toDouble(),
+                    height: _bannerAd!.size.height.toDouble(),
+                    alignment: Alignment.center,
+                    child: AdWidget(ad: _bannerAd!),
+                  ),
+
                 _BottomChapterNav(
                   currentChapter: _currentChapter,
                   totalChapters:  widget.book.totalChapters,
