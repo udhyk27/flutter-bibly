@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 /// 이번 주(월~일) 성경 읽기 현황 위젯
 /// - checkedDays: 완료된 날짜 Set (BibleScreen 등 외부에서 주입)
-/// - 기능 미구현 단계에서는 빈 Set으로 전달
 class WeeklyReadingWidget extends StatelessWidget {
   final Set<DateTime> checkedDays;
 
@@ -34,11 +33,6 @@ class WeeklyReadingWidget extends StatelessWidget {
 
     // 이번 주 날짜와 교집합으로만 카운트
     final doneCount = days.where((d) => checked.contains(d)).length;
-
-    // 디버그용 — 확인 후 제거
-    debugPrint('checked: $checked');
-    debugPrint('days: $days');
-    debugPrint('doneCount: $doneCount');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -92,8 +86,8 @@ class WeeklyReadingWidget extends StatelessWidget {
 // 개별 날짜 뱃지
 // ─────────────────────────────────────────────────────────
 class _DayBadge extends StatelessWidget {
-  final String label;   // 월·화·수…
-  final int date;       // 숫자 날짜
+  final String label; // 월·화·수…
+  final int date; // 숫자 날짜
   final bool isChecked;
   final bool isToday;
   final bool isPast;
@@ -138,9 +132,7 @@ class _DayBadge extends StatelessWidget {
         Text(
           label,
           style: tt.labelSmall!.copyWith(
-            color: isToday
-                ? cs.primary
-                : cs.onSurface.withValues(alpha: 0.5),
+            color: isToday ? cs.primary : cs.onSurface.withValues(alpha: 0.5),
             fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -162,13 +154,12 @@ class _DayBadge extends StatelessWidget {
           child: isChecked
               ? Icon(Icons.check, size: 16, color: circleText)
               : Text(
-            '$date',
-            style: tt.labelMedium!.copyWith(
-              color: circleText,
-              fontWeight:
-              isToday ? FontWeight.w700 : FontWeight.normal,
-            ),
-          ),
+                  '$date',
+                  style: tt.labelMedium!.copyWith(
+                    color: circleText,
+                    fontWeight: isToday ? FontWeight.w700 : FontWeight.normal,
+                  ),
+                ),
         ),
       ],
     );
