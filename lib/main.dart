@@ -16,7 +16,7 @@ final RouteObserver<ModalRoute> routeObserver = RouteObserver<ModalRoute>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  
+
   ConfigApiService().getRemoteConfig();
 
   await MobileAds.instance.initialize();
