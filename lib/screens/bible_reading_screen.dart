@@ -11,8 +11,10 @@ import '../providers/reading_settings.dart';
 import '../services/bible_api_service.dart';
 import '../services/ai_service.dart';
 import '../services/favorite_service.dart';
+import '../services/highlight_service.dart';
 import '../services/reading_date_service.dart';
 import '../services/recent_read_service.dart';
+import '../services/verse_note_service.dart';
 
 class BibleReadingScreen extends StatefulWidget {
   final BibleBookModel book;
@@ -40,6 +42,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
   bool _isFavorite = false;
 
   final Map<String, Color> _highlights = {};
+  final Map<String, String> _notes = {};
   final Map<String, String> _aiAnswers = {};
   final Map<String, bool> _aiLoading = {};
 
@@ -145,6 +148,8 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
       _isLoading = true;
       _error = null;
       _selectedVerseId = null;
+      _highlights.clear();
+      _notes.clear();
     });
 
     await _tts.stop();
@@ -173,6 +178,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
         _isLoading = false;
       });
       _loadFavoriteState();
+      _loadHighlightsAndNotes();
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -235,14 +241,79 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
   }
 
   void _onHighlight(String verseId) {
+    final cs = Theme.of(context).colorScheme;
     setState(() {
       if (_highlights.containsKey(verseId)) {
         _highlights.remove(verseId);
       } else {
-        final cs = Theme.of(context).colorScheme;
         _highlights[verseId] = cs.primary.withOpacity(0.15);
       }
     });
+    // 비동기 영구 저장 (fire-and-forget)
+    HighlightService.save(
+      widget.book.number,
+      _currentChapter,
+      _highlights.keys.toSet(),
+    );
+  }
+
+  // ── 하이라이트 & 메모 로드 ──────────────────────────────
+  Future<void> _loadHighlightsAndNotes() async {
+    final verseIds = await HighlightService.load(
+      widget.book.number, _currentChapter);
+    final notes = await VerseNoteService.loadAll(
+      widget.book.number, _currentChapter);
+    if (!mounted) return;
+    final cs = Theme.of(context).colorScheme;
+    setState(() {
+      _highlights.clear();
+      for (final id in verseIds) {
+        _highlights[id] = cs.primary.withOpacity(0.15);
+      }
+      _notes
+        ..clear()
+        ..addAll(notes);
+    });
+  }
+
+  // ── 메모 편집 시트 열기 ────────────────────────────────
+  Future<void> _onNote(String verseId, String verseText) async {
+    final existingNote = _notes[verseId] ?? '';
+    final controller = TextEditingController(text: existingNote);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _NoteSheet(
+        verseText: verseText,
+        controller: controller,
+        hasExisting: existingNote.isNotEmpty,
+        onSave: (text) async {
+          await VerseNoteService.save(
+            widget.book.number, _currentChapter, verseId, text);
+          if (!mounted) return;
+          setState(() {
+            if (text.trim().isEmpty) {
+              _notes.remove(verseId);
+            } else {
+              _notes[verseId] = text.trim();
+            }
+          });
+          if (ctx.mounted) Navigator.pop(ctx);
+        },
+        onDelete: () async {
+          await VerseNoteService.delete(
+            widget.book.number, _currentChapter, verseId);
+          if (!mounted) return;
+          setState(() => _notes.remove(verseId));
+          if (ctx.mounted) Navigator.pop(ctx);
+        },
+      ),
+    );
+    controller.dispose();
   }
 
   void _showSettingsSheet(BuildContext context) {
@@ -391,6 +462,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
                               verses: _chapter!.verses,
                               selectedVerseId: _selectedVerseId,
                               highlights: _highlights,
+                              notes: _notes,
                               aiAnswers: _aiAnswers,
                               aiLoading: _aiLoading,
                               fontSize: settings.fontSize,
@@ -399,6 +471,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
                               showHighlight: settings.showHighlight,
                               onVerseTap: _onVerseTap,
                               onHighlight: _onHighlight,
+                              onNote: _onNote,
                               onAskAI: _askAI,
                             ),
                           ),
@@ -694,6 +767,7 @@ class _VerseList extends StatelessWidget {
   final List<BibleVerseModel> verses;
   final String? selectedVerseId;
   final Map<String, Color> highlights;
+  final Map<String, String> notes;
   final Map<String, String> aiAnswers;
   final Map<String, bool> aiLoading;
   final double fontSize;
@@ -702,12 +776,14 @@ class _VerseList extends StatelessWidget {
   final bool showHighlight;
   final Function(String) onVerseTap;
   final Function(String) onHighlight;
+  final Function(String, String) onNote;
   final Function(String, String) onAskAI;
 
   const _VerseList({
     required this.verses,
     required this.selectedVerseId,
     required this.highlights,
+    required this.notes,
     required this.aiAnswers,
     required this.aiLoading,
     required this.fontSize,
@@ -716,6 +792,7 @@ class _VerseList extends StatelessWidget {
     required this.showHighlight,
     required this.onVerseTap,
     required this.onHighlight,
+    required this.onNote,
     required this.onAskAI,
   });
 
@@ -733,6 +810,8 @@ class _VerseList extends StatelessWidget {
         final aiAnswer = aiAnswers[verseId];
         final isAiLoading = aiLoading[verseId] ?? false;
         final highlightColor = showHighlight ? highlights[verseId] : null;
+        final noteText = notes[verseId];
+        final hasNote = noteText != null;
 
         return AnimatedSize(
           duration: const Duration(milliseconds: 200),
@@ -746,6 +825,7 @@ class _VerseList extends StatelessWidget {
                 text: verse.text,
                 isSelected: isSelected,
                 highlightColor: highlightColor,
+                hasNote: hasNote,
                 fontSize: fontSize,
                 lineHeight: lineHeight,
                 showVerseNum: showVerseNum,
@@ -756,8 +836,15 @@ class _VerseList extends StatelessWidget {
                   verseId: verseId,
                   text: verse.text,
                   isHighlighted: highlights.containsKey(verseId),
+                  hasNote: hasNote,
                   onHighlight: () => onHighlight(verseId),
+                  onNote: () => onNote(verseId, verse.text),
                   onAskAI: onAskAI,
+                ),
+              if (hasNote)
+                _NoteBubble(
+                  note: noteText,
+                  onEdit: () => onNote(verseId, verse.text),
                 ),
               if (isAiLoading) const _AiLoadingBubble(),
               if (aiAnswer != null && !isAiLoading) _AiBubble(answer: aiAnswer),
@@ -775,6 +862,7 @@ class _VerseRow extends StatelessWidget {
   final String text;
   final bool isSelected;
   final Color? highlightColor;
+  final bool hasNote;
   final double fontSize;
   final double lineHeight;
   final bool showVerseNum;
@@ -785,6 +873,7 @@ class _VerseRow extends StatelessWidget {
     required this.text,
     required this.isSelected,
     required this.highlightColor,
+    required this.hasNote,
     required this.fontSize,
     required this.lineHeight,
     required this.showVerseNum,
@@ -842,6 +931,15 @@ class _VerseRow extends StatelessWidget {
                 ),
               ),
             ),
+            if (hasNote)
+              Padding(
+                padding: const EdgeInsets.only(top: 3, left: 6),
+                child: Icon(
+                  Icons.edit_note,
+                  size: 15,
+                  color: cs.primary.withOpacity(0.55),
+                ),
+              ),
           ],
         ),
       ),
@@ -854,14 +952,18 @@ class _ActionBar extends StatelessWidget {
   final String verseId;
   final String text;
   final bool isHighlighted;
+  final bool hasNote;
   final VoidCallback onHighlight;
+  final VoidCallback onNote;
   final Function(String, String) onAskAI;
 
   const _ActionBar({
     required this.verseId,
     required this.text,
     required this.isHighlighted,
+    required this.hasNote,
     required this.onHighlight,
+    required this.onNote,
     required this.onAskAI,
   });
 
@@ -869,37 +971,47 @@ class _ActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 38, bottom: 8),
-      child: Row(
-        children: [
-          _ActionChip(
-            label: '복사',
-            icon: Icons.copy_outlined,
-            onTap: () {
-              Clipboard.setData(ClipboardData(text: text));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('클립보드에 복사됐어요'),
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  duration: const Duration(seconds: 1),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 6),
-          _ActionChip(
-            label: isHighlighted ? '하이라이트 해제' : '하이라이트',
-            icon: isHighlighted ? Icons.highlight : Icons.highlight_outlined,
-            isActive: isHighlighted,
-            onTap: onHighlight,
-          ),
-          const SizedBox(width: 6),
-          _ActionChip(
-            label: 'AI 질문',
-            icon: Icons.auto_awesome_outlined,
-            isPrimary: true,
-            onTap: () => onAskAI(verseId, text),
-          ),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _ActionChip(
+              label: '복사',
+              icon: Icons.copy_outlined,
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: text));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('클립보드에 복사됐어요'),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(width: 6),
+            _ActionChip(
+              label: isHighlighted ? '하이라이트 해제' : '하이라이트',
+              icon: isHighlighted ? Icons.highlight : Icons.highlight_outlined,
+              isActive: isHighlighted,
+              onTap: onHighlight,
+            ),
+            const SizedBox(width: 6),
+            _ActionChip(
+              label: hasNote ? '메모 수정' : '메모',
+              icon: hasNote ? Icons.edit_note : Icons.note_add_outlined,
+              isActive: hasNote,
+              onTap: onNote,
+            ),
+            const SizedBox(width: 6),
+            _ActionChip(
+              label: 'AI 질문',
+              icon: Icons.auto_awesome_outlined,
+              isPrimary: true,
+              onTap: () => onAskAI(verseId, text),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1198,6 +1310,241 @@ class _BottomChapterNav extends StatelessWidget {
                 ),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 메모 버블 (항상 표시) ────────────────────────────────
+class _NoteBubble extends StatelessWidget {
+  final String note;
+  final VoidCallback onEdit;
+
+  const _NoteBubble({required this.note, required this.onEdit});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onEdit,
+      child: Container(
+        margin: const EdgeInsets.only(left: 38, bottom: 8, right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: cs.primary.withOpacity(0.07),
+          borderRadius: const BorderRadius.only(
+            topRight: Radius.circular(12),
+            bottomLeft: Radius.circular(12),
+            bottomRight: Radius.circular(12),
+          ),
+          border: Border.all(color: cs.primary.withOpacity(0.18), width: 0.8),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.edit_note, size: 15, color: cs.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                note,
+                style: GoogleFonts.notoSerifKr(
+                  fontSize: 13,
+                  color: cs.onSurface,
+                  height: 1.6,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── 메모 작성/편집 시트 ───────────────────────────────────
+class _NoteSheet extends StatefulWidget {
+  final String verseText;
+  final TextEditingController controller;
+  final bool hasExisting;
+  final Future<void> Function(String) onSave;
+  final Future<void> Function() onDelete;
+
+  const _NoteSheet({
+    required this.verseText,
+    required this.controller,
+    required this.hasExisting,
+    required this.onSave,
+    required this.onDelete,
+  });
+
+  @override
+  State<_NoteSheet> createState() => _NoteSheetState();
+}
+
+class _NoteSheetState extends State<_NoteSheet> {
+  bool _saving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 드래그 핸들
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: cs.outline,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            '메모',
+            style: GoogleFonts.ebGaramond(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: cs.onSurface,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: 10),
+          // 해당 절 미리보기
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              widget.verseText,
+              style: GoogleFonts.notoSerifKr(
+                fontSize: 13,
+                color: cs.secondary,
+                height: 1.6,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(height: 14),
+          // 텍스트 입력
+          TextField(
+            controller: widget.controller,
+            autofocus: true,
+            maxLines: 4,
+            minLines: 2,
+            style: GoogleFonts.notoSerifKr(
+              fontSize: 14,
+              color: cs.onSurface,
+              height: 1.7,
+            ),
+            decoration: InputDecoration(
+              hintText: '이 말씀에 대한 묵상이나 기도를 적어보세요…',
+              hintStyle: GoogleFonts.notoSerifKr(
+                fontSize: 13,
+                color: cs.outline,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: cs.outline),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: cs.primary, width: 1.5),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: cs.outline),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              if (widget.hasExisting) ...[
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _saving
+                        ? null
+                        : () async {
+                            setState(() => _saving = true);
+                            await widget.onDelete();
+                          },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      decoration: BoxDecoration(
+                        color: cs.errorContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '삭제',
+                          style: GoogleFonts.ebGaramond(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: cs.onErrorContainer,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                flex: 2,
+                child: GestureDetector(
+                  onTap: _saving
+                      ? null
+                      : () async {
+                          setState(() => _saving = true);
+                          await widget.onSave(widget.controller.text);
+                        },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    decoration: BoxDecoration(
+                      color: cs.primary,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: _saving
+                          ? SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: cs.onPrimary,
+                              ),
+                            )
+                          : Text(
+                              '저장',
+                              style: GoogleFonts.ebGaramond(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: cs.onPrimary,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
