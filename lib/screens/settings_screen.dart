@@ -7,7 +7,6 @@ import '../providers/reading_settings.dart';
 import '../core/app_theme.dart';
 import '../services/config_api_service.dart';
 import '../services/notification_service.dart';
-import '../widgets/bottom_nav.dart';
 import '../widgets/custom_timpe_picker.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -43,7 +42,6 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ),
             ),
-            const BottomNav(activeIndex: 3),
           ],
         ),
       ),

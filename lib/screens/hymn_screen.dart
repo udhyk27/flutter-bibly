@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../core/app_router.dart';
-import '../widgets/bottom_nav.dart';
 
 class HymnScreen extends StatefulWidget {
   const HymnScreen({super.key});
@@ -59,7 +58,6 @@ class _HymnScreenState extends State<HymnScreen> {
                 },
               ),
             ),
-            const BottomNav(activeIndex: 2),
           ],
         ),
       ),

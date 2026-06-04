@@ -1,32 +1,9 @@
 import 'package:flutter/material.dart';
-import '../core/app_router.dart';
-import '../screens/bible_screen.dart';
-import '../screens/hymn_screen.dart';
-import '../screens/settings_screen.dart';
 
 class BottomNav extends StatelessWidget {
   final int activeIndex;
-  const BottomNav({super.key, this.activeIndex = 0});
-
-  void _onTap(BuildContext context, int index) {
-    if (index == activeIndex) return;
-    if (index == 0) {
-      Navigator.popUntil(context, (r) => r.isFirst);
-      return;
-    }
-    Widget screen;
-    switch (index) {
-      case 1: screen = const BibleScreen();    break;
-      case 2: screen = const HymnScreen();     break;
-      case 3: screen = const SettingsScreen(); break;
-      default: return;
-    }
-    Navigator.pushAndRemoveUntil(
-      context,
-      AppRouter.fade(page: screen),
-          (route) => route.isFirst,
-    );
-  }
+  final ValueChanged<int> onTap;
+  const BottomNav({super.key, this.activeIndex = 0, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +25,9 @@ class BottomNav extends StatelessWidget {
         )),
         color: Theme.of(context).scaffoldBackgroundColor,
       ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
       padding: const EdgeInsets.only(bottom: 16, top: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -55,7 +35,7 @@ class BottomNav extends StatelessWidget {
           final isActive = i == activeIndex;
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => _onTap(context, i),
+            onTap: () => onTap(i),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Column(
@@ -82,6 +62,8 @@ class BottomNav extends StatelessWidget {
             ),
           );
         }),
+      ),
+        ),
       ),
     );
   }

@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/theme_provider.dart';
 import 'services/bible_api_service.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_shell.dart';
 import 'screens/onboarding_screen.dart';
 
 final RouteObserver<ModalRoute> routeObserver = RouteObserver<ModalRoute>();
@@ -50,7 +50,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       navigatorObservers: [routeObserver], // 전역 변수 사용
       theme: themeProvider.themeData,
-      home: hasSeenOnboarding ? const HomeScreen() : const OnboardingScreen(),
+      home: hasSeenOnboarding ? const MainShell() : const OnboardingScreen(),
     );
   }
 }

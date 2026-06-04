@@ -4,7 +4,6 @@ import '../widgets/top_bar.dart';
 import '../widgets/today_verse_card.dart';
 import '../widgets/main_menu_grid.dart';
 import '../widgets/recent_section.dart';
-import '../widgets/bottom_nav.dart';
 import '../widgets/weekly_reading.dart';
 import '../services/reading_date_service.dart'; // 추가
 
@@ -12,12 +11,19 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with RouteAware {
+class HomeScreenState extends State<HomeScreen> with RouteAware {
   int _recentKey = 0;
   Set<DateTime> _readDays = {};  // 추가
+
+  /// 다른 탭에서 홈으로 돌아올 때 셸이 호출 — 읽기 현황/최근 기록 갱신
+  void refresh() {
+    if (!mounted) return;
+    setState(() => _recentKey++);
+    _loadReadDays();
+  }
 
   // 읽기 날짜 로드
   Future<void> _loadReadDays() async {
@@ -77,7 +83,6 @@ class _HomeScreenState extends State<HomeScreen> with RouteAware {
                 ),
               ),
             ),
-            const BottomNav(activeIndex: 0),
           ],
         ),
       ),
