@@ -1155,47 +1155,7 @@ class _AiBubble extends StatelessWidget {
               height: 1.7,
             ),
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              _MoreBtn(label: '더 자세히', onTap: () {}),
-              const SizedBox(width: 6),
-              _MoreBtn(label: '원어 보기', onTap: () {}),
-              const SizedBox(width: 6),
-              _MoreBtn(label: '관련 구절', onTap: () {}),
-            ],
-          ),
         ],
-      ),
-    );
-  }
-}
-
-class _MoreBtn extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  const _MoreBtn({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: cs.outline, width: 0.5),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.ebGaramond(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: cs.onSurface,
-          ),
-        ),
       ),
     );
   }
