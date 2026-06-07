@@ -92,7 +92,6 @@ class _BibleScreenState extends State<BibleScreen>
 
   @override
   Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(

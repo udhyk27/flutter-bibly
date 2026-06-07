@@ -41,7 +41,6 @@ class FavoriteListWidgetState extends State<FavoriteListWidget> {
   Widget build(BuildContext context) {
     if (_favorites.isEmpty) return const SizedBox.shrink();
 
-    final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
     return Column(

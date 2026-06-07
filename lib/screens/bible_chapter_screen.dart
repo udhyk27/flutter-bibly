@@ -4,7 +4,6 @@ import '../core/app_router.dart';
 import '../model/bible_models.dart';
 import '../model/bible_story_model.dart';
 import '../services/ai_service.dart';
-import '../services/bible_api_service.dart';
 import 'bible_reading_screen.dart';
 
 class BibleChapterScreen extends StatefulWidget {

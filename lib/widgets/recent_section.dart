@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../model/bible_models.dart';
 import '../model/recent_read_model.dart';
 import '../services/recent_read_service.dart';
-import '../services/bible_api_service.dart';
 import '../screens/bible_reading_screen.dart';
 import '../core/app_router.dart';
 
