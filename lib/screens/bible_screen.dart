@@ -253,7 +253,7 @@ class _GenreFilter extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: genres.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
         itemBuilder: (context, i) {
           final isSelected = genres[i] == selected;
           return GestureDetector(

@@ -242,7 +242,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
       if (_highlights.containsKey(verseId)) {
         _highlights.remove(verseId);
       } else {
-        _highlights[verseId] = cs.primary.withOpacity(0.15);
+        _highlights[verseId] = cs.primary.withValues(alpha: 0.15);
       }
     });
     // 비동기 영구 저장 (fire-and-forget)
@@ -264,7 +264,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
     setState(() {
       _highlights.clear();
       for (final id in verseIds) {
-        _highlights[id] = cs.primary.withOpacity(0.15);
+        _highlights[id] = cs.primary.withValues(alpha: 0.15);
       }
       _notes
         ..clear()
@@ -332,7 +332,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
         ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
         child: child,
       ),
-      pageBuilder: (ctx, _, __) => Align(
+      pageBuilder: (ctx, _, _) => Align(
         alignment: Alignment.bottomCenter,
         child: Material(
           color: Theme.of(context).scaffoldBackgroundColor,
@@ -505,7 +505,7 @@ class _PaperTexturePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = baseColor.withOpacity(0.018);
+    final paint = Paint()..color = baseColor.withValues(alpha: 0.018);
     int rx = 127, ry = 311;
     int next() {
       rx = (rx * 1664525 + 1013904223) & 0xFFFFFFFF;
@@ -627,7 +627,7 @@ class _CustomSlider extends StatelessWidget {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
+                            color: Colors.black.withValues(alpha: 0.15),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -881,10 +881,11 @@ class _VerseRow extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     Color bgColor = Colors.transparent;
-    if (isSelected)
+    if (isSelected) {
       bgColor = cs.surfaceContainerHighest;
-    else if (highlightColor != null)
+    } else if (highlightColor != null) {
       bgColor = highlightColor!;
+    }
 
     return GestureDetector(
       onTap: onTap,
@@ -933,7 +934,7 @@ class _VerseRow extends StatelessWidget {
                 child: Icon(
                   Icons.edit_note,
                   size: 15,
-                  color: cs.primary.withOpacity(0.55),
+                  color: cs.primary.withValues(alpha: 0.55),
                 ),
               ),
           ],
@@ -1035,7 +1036,7 @@ class _ActionChip extends StatelessWidget {
     final bgColor = isPrimary
         ? cs.primary
         : isActive
-        ? cs.primary.withOpacity(0.15)
+        ? cs.primary.withValues(alpha: 0.15)
         : cs.surfaceContainerHighest;
     final fgColor = isPrimary ? cs.onPrimary : cs.secondary;
 
@@ -1192,7 +1193,7 @@ class _BottomChapterNav extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: hasPrev
                       ? cs.surfaceContainerHighest
-                      : cs.surfaceContainerHighest.withOpacity(0.4),
+                      : cs.surfaceContainerHighest.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -1242,7 +1243,7 @@ class _BottomChapterNav extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: hasNext
                       ? cs.surfaceContainerHighest
-                      : cs.surfaceContainerHighest.withOpacity(0.4),
+                      : cs.surfaceContainerHighest.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -1289,13 +1290,13 @@ class _NoteBubble extends StatelessWidget {
         margin: const EdgeInsets.only(left: 38, bottom: 8, right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: cs.primary.withOpacity(0.07),
+          color: cs.primary.withValues(alpha: 0.07),
           borderRadius: const BorderRadius.only(
             topRight: Radius.circular(12),
             bottomLeft: Radius.circular(12),
             bottomRight: Radius.circular(12),
           ),
-          border: Border.all(color: cs.primary.withOpacity(0.18), width: 0.8),
+          border: Border.all(color: cs.primary.withValues(alpha: 0.18), width: 0.8),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,

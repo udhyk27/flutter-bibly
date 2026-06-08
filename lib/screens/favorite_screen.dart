@@ -85,7 +85,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 20, vertical: 12),
                 itemCount: _favorites.length,
-                separatorBuilder: (_, __) =>
+                separatorBuilder: (_, _) =>
                     Divider(height: 1, color: cs.outline),
                 itemBuilder: (context, index) {
                   final fav = _favorites[index];
@@ -140,7 +140,7 @@ class _FavoriteRow extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        color: Colors.redAccent.withOpacity(0.1),
+        color: Colors.redAccent.withValues(alpha: 0.1),
         child: const Icon(Icons.delete_outline,
             color: Colors.redAccent, size: 20),
       ),

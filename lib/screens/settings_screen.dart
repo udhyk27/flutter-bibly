@@ -153,7 +153,7 @@ class _SettingsRow extends StatelessWidget {
                 ],
               ),
             ),
-            if (trailing != null) trailing!,
+            ?trailing,
           ],
         ),
       ),
@@ -206,7 +206,7 @@ class _SettingsRowLast extends StatelessWidget {
                 ],
               ),
             ),
-            if (trailing != null) trailing!,
+            ?trailing,
           ],
         ),
       ),
@@ -445,7 +445,7 @@ class _ReadingSettings extends StatelessWidget {
           label: '절 번호 표시',
           trailing: Switch(
             value: settings.showVerseNum,
-            activeColor: cs.primary,
+            activeThumbColor: cs.primary,
             onChanged: (v) =>
                 context.read<ReadingSettings>().setShowVerseNum(v),
           ),
@@ -458,7 +458,7 @@ class _ReadingSettings extends StatelessWidget {
           subLabel: '저장한 하이라이트를 본문에 표시',
           trailing: Switch(
             value: settings.showHighlight,
-            activeColor: cs.primary,
+            activeThumbColor: cs.primary,
             onChanged: (v) =>
                 context.read<ReadingSettings>().setShowHighlight(v),
           ),
@@ -601,8 +601,11 @@ class _NotificationSettingsState extends State<_NotificationSettings> {
     if (picked == null) return;
 
     setState(() {
-      if (isVerse) _verseTime = picked;
-      else         _prayerTime = picked;
+      if (isVerse) {
+        _verseTime = picked;
+      } else {
+        _prayerTime = picked;
+      }
     });
 
     if (isVerse && _dailyVerse) {
@@ -675,7 +678,7 @@ class _NotificationSettingsState extends State<_NotificationSettings> {
               const SizedBox(width: 8),
               Switch(
                 value: _dailyVerse,
-                activeColor: cs.primary,
+                activeThumbColor: cs.primary,
                 onChanged: _toggleDailyVerse,
               ),
             ],
@@ -713,7 +716,7 @@ class _NotificationSettingsState extends State<_NotificationSettings> {
               const SizedBox(width: 8),
               Switch(
                 value: _prayerReminder,
-                activeColor: cs.primary,
+                activeThumbColor: cs.primary,
                 onChanged: _togglePrayer,
               ),
             ],

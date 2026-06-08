@@ -99,7 +99,7 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
                       ),
                       const SizedBox(height: 1),
                       Text(
-                        '${widget.book.englishName} · 총 ${total}장',
+                        '${widget.book.englishName} · 총 $total장',
                         style: tt.labelSmall?.copyWith(
                           color: cs.secondary,
                           letterSpacing: 0.3,
@@ -143,7 +143,7 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
                             end: Alignment.bottomCenter,
                             colors: [
                               cs.surface,
-                              cs.surface.withOpacity(0),
+                              cs.surface.withValues(alpha: 0),
                             ],
                           ),
                         ),
@@ -162,7 +162,7 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
                             end: Alignment.topCenter,
                             colors: [
                               cs.surface,
-                              cs.surface.withOpacity(0),
+                              cs.surface.withValues(alpha: 0),
                             ],
                           ),
                         ),
@@ -178,7 +178,7 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
                       color: cs.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: cs.primary.withOpacity(0.15),
+                        color: cs.primary.withValues(alpha: 0.15),
                         width: 1.5,
                       ),
                     ),
@@ -213,7 +213,7 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
                                 : TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w400,
-                              color: cs.secondary.withOpacity(0.4),
+                              color: cs.secondary.withValues(alpha: 0.4),
                             ),
                             child: Text('$chapter장'),
                           ),
@@ -246,7 +246,7 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: cs.primary.withOpacity(0.28),
+                        color: cs.primary.withValues(alpha: 0.28),
                         blurRadius: 18,
                         offset: const Offset(0, 6),
                       ),
@@ -320,7 +320,7 @@ class _StoryCard extends StatelessWidget {
         color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: cs.primary.withOpacity(0.12),
+          color: cs.primary.withValues(alpha: 0.12),
           width: 1,
         ),
       ),
@@ -382,8 +382,8 @@ class _StoryCard extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  cs.primary.withOpacity(0.3),
-                  cs.primary.withOpacity(0),
+                  cs.primary.withValues(alpha: 0.3),
+                  cs.primary.withValues(alpha: 0),
                 ],
               ),
             ),
@@ -395,7 +395,7 @@ class _StoryCard extends StatelessWidget {
             child: Text(
               story?.content ?? '',
               style: tt.bodyMedium?.copyWith(
-                color: cs.onSurface.withOpacity(0.78),
+                color: cs.onSurface.withValues(alpha: 0.78),
                 height: 1.7,
               ),
             ),
@@ -503,7 +503,7 @@ class _StoryCard extends StatelessWidget {
           Text(
             '네트워크 연결을 확인하고 다시 시도해주세요.\n$bookName 말씀을 읽으며 새로운 이야기를 발견해보세요.',
             style: tt.bodyMedium?.copyWith(
-              color: cs.onSurface.withOpacity(0.6),
+              color: cs.onSurface.withValues(alpha: 0.6),
               height: 1.6,
             ),
           ),
@@ -517,10 +517,10 @@ class _StoryCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                color: cs.primary.withOpacity(0.1),
+                color: cs.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: cs.primary.withOpacity(0.2),
+                  color: cs.primary.withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
@@ -564,7 +564,7 @@ class _SkeletonBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: cs.outline.withOpacity(0.15),
+        color: cs.outline.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(4),
       ),
     );

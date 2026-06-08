@@ -213,7 +213,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       padding: const EdgeInsets.fromLTRB(
                           20, 0, 20, 40),
                       itemCount: _results.length,
-                      separatorBuilder: (_, __) =>
+                      separatorBuilder: (_, _) =>
                           Divider(height: 1, color: cs.outline),
                       itemBuilder: (context, index) =>
                           _ResultRow(result: _results[index]),
@@ -328,7 +328,7 @@ class _HighlightText extends StatelessWidget {
         style: TextStyle(
           color:           cs.primary,
           fontWeight:      FontWeight.w700,
-          backgroundColor: cs.primary.withOpacity(0.1),
+          backgroundColor: cs.primary.withValues(alpha: 0.1),
         ),
       ));
       start = idx + query.length;

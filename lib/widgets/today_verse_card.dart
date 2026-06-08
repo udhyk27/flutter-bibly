@@ -84,7 +84,7 @@ class _TodayVerseCardState extends State<TodayVerseCard> {
               '오늘의 말씀',
               style: TextStyle(
                 fontSize: 11,
-                color: cs.onPrimary.withOpacity(0.65),
+                color: cs.onPrimary.withValues(alpha: 0.65),
                 letterSpacing: 1.0,
               ),
             ),
@@ -111,13 +111,13 @@ class _TodayVerseCardState extends State<TodayVerseCard> {
                   style: GoogleFonts.ebGaramond(
                     fontSize: 13,
                     fontStyle: FontStyle.italic,
-                    color: cs.onPrimary.withOpacity(0.8),
+                    color: cs.onPrimary.withValues(alpha: 0.8),
                   ),
                 ),
                 Icon(
                   Icons.arrow_forward_ios,
                   size: 12,
-                  color: cs.onPrimary.withOpacity(0.6),
+                  color: cs.onPrimary.withValues(alpha: 0.6),
                 ),
               ],
             ),

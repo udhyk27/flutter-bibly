@@ -155,7 +155,7 @@ class _CategoryFilter extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: _categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
         itemBuilder: (context, i) {
           final isSelected = _categories[i] == selected;
           return GestureDetector(
@@ -408,7 +408,7 @@ class _HymnDetailScreenState extends State<HymnDetailScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   itemCount: widget.hymn.verses.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 6),
+                  separatorBuilder: (_, _) => const SizedBox(width: 6),
                   itemBuilder: (context, i) {
                     final isSelected = _currentVerse == i;
                     return GestureDetector(

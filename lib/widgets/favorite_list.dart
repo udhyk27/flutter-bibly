@@ -10,7 +10,7 @@ import '../screens/bible_reading_screen.dart';
 ///   FavoriteListWidget(key: _favoriteKey)
 ///
 /// 즐겨찾기 추가/삭제 후 새로고침이 필요하면:
-///   final _favoriteKey = GlobalKey<FavoriteListWidgetState>();
+///   final _favoriteKey = GlobalKey[FavoriteListWidgetState]();
 ///   _favoriteKey.currentState?.reload();
 
 class FavoriteListWidget extends StatefulWidget {
@@ -68,7 +68,7 @@ class FavoriteListWidgetState extends State<FavoriteListWidget> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             scrollDirection: Axis.horizontal,
             itemCount: _favorites.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            separatorBuilder: (_, _) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
               return _FavoriteCard(
                 favorite: _favorites[index],

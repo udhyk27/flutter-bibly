@@ -125,7 +125,7 @@ class _BibleAiScreenState extends State<BibleAiScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: cs.surfaceVariant,
+                        color: cs.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -155,7 +155,7 @@ class _BibleAiScreenState extends State<BibleAiScreen> {
                             ? '이 구절에 대해 질문해보세요'
                             : '성경에 대해 무엇이든 질문해보세요',
                         filled: true,
-                        fillColor: cs.surfaceVariant,
+                        fillColor: cs.surfaceContainerHighest,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                           borderSide: BorderSide.none,
