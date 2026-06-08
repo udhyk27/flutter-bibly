@@ -100,11 +100,8 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
     await _tts.setPitch(0.88);
     await _tts.setVoice({'name': 'ko-kr-x-kod-local', 'locale': 'ko-KR'});
 
-    _tts.setCompletionHandler(() {
-      _verseIsPlaying = false;
-    });
+    _tts.setCompletionHandler(() {});
     _tts.setErrorHandler((_) {
-      _verseIsPlaying = false;
       if (mounted) setState(() => _isSpeaking = false);
     });
   }

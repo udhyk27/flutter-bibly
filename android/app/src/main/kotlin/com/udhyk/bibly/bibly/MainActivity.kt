@@ -1,4 +1,4 @@
-package com.dhy.bibly
+package com.udhyk.bibly.bibly
 
 import io.flutter.embedding.android.FlutterActivity
 
