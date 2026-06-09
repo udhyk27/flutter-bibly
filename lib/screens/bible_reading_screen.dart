@@ -50,6 +50,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
   final FlutterTts _tts = FlutterTts();
   bool _isSpeaking = false;
 
+  
   // ── AdMob 배너 ──────────────────────────────────────
   BannerAd? _bannerAd;
   bool _isBannerAdReady = false;
