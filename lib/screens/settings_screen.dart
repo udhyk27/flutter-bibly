@@ -2,6 +2,7 @@ import 'package:Bibly/screens/webview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/theme_provider.dart';
 import '../providers/reading_settings.dart';
 import '../core/app_theme.dart';
@@ -754,7 +755,12 @@ class _AppInfo extends StatelessWidget {
           icon: Icons.star_outline,
           label: '앱 평가하기',
           trailing: Icon(Icons.chevron_right, size: 18, color: cs.outline),
-          onTap: () {},
+          onTap: () {
+            final url = ConfigApiService().playStoreUrl;
+            if (url.isNotEmpty) {
+              launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+            }
+          },
         ),
         _SettingsRow(
           icon: Icons.share_outlined,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/app_router.dart';
+import '../services/hymn_favorite_service.dart';
 
 class HymnScreen extends StatefulWidget {
   const HymnScreen({super.key});
@@ -217,6 +218,15 @@ class _HymnRow extends StatefulWidget {
 
 class _HymnRowState extends State<_HymnRow> {
   bool _isPlaying = false;
+  bool _isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    HymnFavoriteService.isFavorite(widget.hymn.number).then((v) {
+      if (mounted) setState(() => _isFavorite = v);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -268,13 +278,16 @@ class _HymnRowState extends State<_HymnRow> {
 
             // 즐겨찾기
             GestureDetector(
-              onTap: () {},
+              onTap: () async {
+                final next = await HymnFavoriteService.toggle(widget.hymn.number);
+                if (mounted) setState(() => _isFavorite = next);
+              },
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: Icon(
-                  Icons.star_outline,
+                  _isFavorite ? Icons.star : Icons.star_outline,
                   size: 18,
-                  color: cs.outline,
+                  color: _isFavorite ? Colors.amber : cs.outline,
                 ),
               ),
             ),

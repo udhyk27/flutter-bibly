@@ -20,6 +20,7 @@ dependencies:
   webview_flutter: ^4.0.0
   connectivity_plus: ^6.0.0
   share_plus: ^10.0.0 # 공유
+  url_launcher: ^6.3.0
   google_generative_ai: ^0.4.6
   google_fonts: ^6.2.1
   flutter_tts: ^4.0.2
