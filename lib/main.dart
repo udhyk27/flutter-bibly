@@ -1,3 +1,4 @@
+import 'package:Bibly/providers/auth_provider.dart';
 import 'package:Bibly/providers/reading_settings.dart';
 import 'package:Bibly/services/config_api_service.dart';
 import 'package:Bibly/services/notification_service.dart';
@@ -31,6 +32,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => ReadingSettings()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
       child: MyApp(hasSeenOnboarding: hasSeenOnboarding),
     ),

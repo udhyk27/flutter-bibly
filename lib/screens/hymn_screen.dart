@@ -10,26 +10,48 @@ class HymnScreen extends StatefulWidget {
 }
 
 class _HymnScreenState extends State<HymnScreen> {
-  String _selectedCategory = '전체';
-  String _searchQuery      = '';
+  String   _selectedCategory  = '전체';
+  String   _searchQuery       = '';
+  bool     _showFavoritesOnly = false;
+  Set<int> _favoriteNumbers   = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    final favs = await HymnFavoriteService.getAll();
+    if (mounted) setState(() => _favoriteNumbers = favs);
+  }
+
+  void _toggleFavoritesOnly() {
+    _loadFavorites();
+    setState(() => _showFavoritesOnly = !_showFavoritesOnly);
+  }
 
   @override
   Widget build(BuildContext context) {
 
     final filtered = _hymnList.where((h) {
+      final matchFav    = !_showFavoritesOnly || _favoriteNumbers.contains(h.number);
       final matchCat    = _selectedCategory == '전체' || h.category == _selectedCategory;
       final matchSearch = _searchQuery.isEmpty ||
           h.title.contains(_searchQuery) ||
           h.englishTitle.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           h.number.toString().contains(_searchQuery);
-      return matchCat && matchSearch;
+      return matchFav && matchCat && matchSearch;
     }).toList();
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            _HymnTopBar(),
+            _HymnTopBar(
+              showFavoritesOnly: _showFavoritesOnly,
+              onToggleFavorites: _toggleFavoritesOnly,
+            ),
             _HymnSearchBar(onChanged: (q) => setState(() => _searchQuery = q)),
             _CategoryFilter(
               selected: _selectedCategory,
@@ -68,6 +90,13 @@ class _HymnScreenState extends State<HymnScreen> {
 
 // ── 상단 바 ──────────────────────────────────────────
 class _HymnTopBar extends StatelessWidget {
+  final bool showFavoritesOnly;
+  final VoidCallback onToggleFavorites;
+  const _HymnTopBar({
+    required this.showFavoritesOnly,
+    required this.onToggleFavorites,
+  });
+
   @override
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
@@ -84,13 +113,21 @@ class _HymnTopBar extends StatelessWidget {
               Text('${_hymnList.length}장 수록', style: tt.labelMedium),
             ],
           ),
-          Container(
-            width: 34, height: 34,
-            decoration: BoxDecoration(
-              color: cs.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(10),
+          GestureDetector(
+            onTap: onToggleFavorites,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 34, height: 34,
+              decoration: BoxDecoration(
+                color: showFavoritesOnly ? cs.primary : cs.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                showFavoritesOnly ? Icons.star : Icons.star_outline,
+                size: 18,
+                color: showFavoritesOnly ? cs.onPrimary : cs.primary,
+              ),
             ),
-            child: Icon(Icons.sort_outlined, size: 18, color: cs.primary),
           ),
         ],
       ),
