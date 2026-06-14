@@ -2,13 +2,16 @@ import 'package:Bibly/screens/webview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../providers/auth_provider.dart' as auth;
 import '../providers/theme_provider.dart';
 import '../providers/reading_settings.dart';
 import '../core/app_theme.dart';
 import '../services/config_api_service.dart';
 import '../services/notification_service.dart';
 import '../widgets/custom_timpe_picker.dart';
+import 'onboarding_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -36,6 +39,9 @@ class SettingsScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   _SectionLabel(label: '알림'),
                   _NotificationSettings(),
+                  const SizedBox(height: 8),
+                  _SectionLabel(label: '계정'),
+                  _AccountSection(),
                   const SizedBox(height: 8),
                   _SectionLabel(label: '앱 정보'),
                   _AppInfo(),
@@ -589,10 +595,49 @@ class _NotificationSettings extends StatefulWidget {
 }
 
 class _NotificationSettingsState extends State<_NotificationSettings> {
+  static const _kDailyVerse     = 'notif_daily_verse';
+  static const _kPrayerReminder = 'notif_prayer_reminder';
+  static const _kVerseHour      = 'notif_verse_hour';
+  static const _kVerseMinute    = 'notif_verse_minute';
+  static const _kPrayerHour     = 'notif_prayer_hour';
+  static const _kPrayerMinute   = 'notif_prayer_minute';
+
   bool      _dailyVerse     = false;
   bool      _prayerReminder = false;
   TimeOfDay _verseTime      = const TimeOfDay(hour: 7,  minute: 0);
   TimeOfDay _prayerTime     = const TimeOfDay(hour: 21, minute: 0);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrefs();
+  }
+
+  Future<void> _loadPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _dailyVerse     = prefs.getBool(_kDailyVerse)     ?? false;
+      _prayerReminder = prefs.getBool(_kPrayerReminder) ?? false;
+      _verseTime  = TimeOfDay(
+        hour:   prefs.getInt(_kVerseHour)   ?? 7,
+        minute: prefs.getInt(_kVerseMinute) ?? 0,
+      );
+      _prayerTime = TimeOfDay(
+        hour:   prefs.getInt(_kPrayerHour)   ?? 21,
+        minute: prefs.getInt(_kPrayerMinute) ?? 0,
+      );
+    });
+  }
+
+  Future<void> _savePrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kDailyVerse,     _dailyVerse);
+    await prefs.setBool(_kPrayerReminder, _prayerReminder);
+    await prefs.setInt(_kVerseHour,       _verseTime.hour);
+    await prefs.setInt(_kVerseMinute,     _verseTime.minute);
+    await prefs.setInt(_kPrayerHour,      _prayerTime.hour);
+    await prefs.setInt(_kPrayerMinute,    _prayerTime.minute);
+  }
 
   Future<void> _pickTime(BuildContext context, bool isVerse) async {
     final picked = await showCustomTimePicker(
@@ -608,6 +653,7 @@ class _NotificationSettingsState extends State<_NotificationSettings> {
         _prayerTime = picked;
       }
     });
+    await _savePrefs();
 
     if (isVerse && _dailyVerse) {
       await NotificationService().scheduleDailyVerse(picked);
@@ -618,10 +664,10 @@ class _NotificationSettingsState extends State<_NotificationSettings> {
   }
 
   Future<void> _toggleDailyVerse(bool v) async {
-    // 켤 때 권한 요청
     if (v) await NotificationService().requestPermission();
 
     setState(() => _dailyVerse = v);
+    await _savePrefs();
 
     if (v) {
       await NotificationService().scheduleDailyVerse(_verseTime);
@@ -634,6 +680,7 @@ class _NotificationSettingsState extends State<_NotificationSettings> {
     if (v) await NotificationService().requestPermission();
 
     setState(() => _prayerReminder = v);
+    await _savePrefs();
 
     if (v) {
       await NotificationService().schedulePrayer(_prayerTime);
@@ -724,6 +771,111 @@ class _NotificationSettingsState extends State<_NotificationSettings> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── 계정 ──────────────────────────────────────────────
+class _AccountSection extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final cs        = Theme.of(context).colorScheme;
+    final tt        = Theme.of(context).textTheme;
+    final authProv  = context.watch<auth.AuthProvider>();
+
+    if (!authProv.isSignedIn) {
+      return _SettingsCard(
+        children: [
+          _SettingsRowLast(
+            icon: Icons.login_outlined,
+            label: '로그인',
+            subLabel: '구글 계정으로 로그인하세요',
+            trailing: Icon(Icons.chevron_right, size: 18, color: cs.outline),
+            onTap: () => authProv.signInWithGoogle(),
+          ),
+        ],
+      );
+    }
+
+    final user       = authProv.user!;
+    final email      = user.email ?? '';
+    final name       = user.displayName ?? email;
+    final photoUrl   = user.photoURL;
+
+    return _SettingsCard(
+      children: [
+        // 유저 정보 행
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: cs.surfaceContainerHighest,
+                backgroundImage:
+                    photoUrl != null ? NetworkImage(photoUrl) : null,
+                child: photoUrl == null
+                    ? Icon(Icons.person_outline, size: 18, color: cs.primary)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name,  style: tt.bodyMedium),
+                    Text(email, style: tt.labelMedium),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        // 구분선
+        Divider(height: 0.5, thickness: 0.5, color: cs.outline),
+        // 로그아웃 버튼
+        _SettingsRowLast(
+          icon: Icons.logout,
+          label: '로그아웃',
+          onTap: () => _confirmSignOut(context, authProv),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmSignOut(
+      BuildContext context, auth.AuthProvider authProv) async {
+    final cs = Theme.of(context).colorScheme;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(ctx).scaffoldBackgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('로그아웃'),
+        content: const Text('로그아웃 하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('취소', style: TextStyle(color: cs.secondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('로그아웃',
+                style: TextStyle(
+                    color: Colors.red, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    await authProv.signOut();
+
+    if (!context.mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+      (_) => false,
     );
   }
 }
