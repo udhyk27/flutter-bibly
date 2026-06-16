@@ -86,6 +86,22 @@ class _AccountSheetState extends State<_AccountSheet> {
   bool _loading = false;
 
   @override
+  void initState() {
+    super.initState();
+    widget.auth.addListener(_onAuthChanged);
+  }
+
+  void _onAuthChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    widget.auth.removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
     final cs = Theme.of(context).colorScheme;
@@ -149,13 +165,21 @@ class _AccountSheetState extends State<_AccountSheet> {
                 onPressed: _loading ? null : () async {
                   setState(() => _loading = true);
                   try {
-                    await auth.signInWithGoogle();
-                    if (context.mounted) Navigator.pop(context);
+                    final ok = await auth.signInWithGoogle();
+                    if (!context.mounted) return;
+                    if (ok) {
+                      Navigator.pop(context);
+                    } else {
+                      setState(() => _loading = false);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(auth.errorMessage ?? '로그인에 실패했습니다')),
+                      );
+                    }
                   } catch (e) {
                     setState(() => _loading = false);
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('로그인에 실패했습니다')),
+                        SnackBar(content: Text(e.toString())),
                       );
                     }
                   }

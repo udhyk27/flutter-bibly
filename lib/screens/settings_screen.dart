@@ -791,7 +791,14 @@ class _AccountSection extends StatelessWidget {
             label: '로그인',
             subLabel: '구글 계정으로 로그인하세요',
             trailing: Icon(Icons.chevron_right, size: 18, color: cs.outline),
-            onTap: () => authProv.signInWithGoogle(),
+            onTap: () async {
+            final ok = await authProv.signInWithGoogle();
+            if (!ok && context.mounted && authProv.errorMessage != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('로그인 실패: ${authProv.errorMessage}')),
+              );
+            }
+          },
           ),
         ],
       );

@@ -13,16 +13,27 @@ class AuthProvider extends ChangeNotifier {
     _auth.authStateChanges().listen((_) => notifyListeners());
   }
 
-  Future<void> signInWithGoogle() async {
-    final googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) return;
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
 
-    final googleAuth = await googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-    await _auth.signInWithCredential(credential);
+  Future<bool> signInWithGoogle() async {
+    try {
+      _errorMessage = null;
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return false; // 사용자가 취소
+
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      await _auth.signInWithCredential(credential);
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<void> signOut() async {

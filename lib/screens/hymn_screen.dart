@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import '../core/app_router.dart';
+import '../data/hymn_data.dart';
 import '../services/hymn_favorite_service.dart';
 
 class HymnScreen extends StatefulWidget {
@@ -34,7 +36,7 @@ class _HymnScreenState extends State<HymnScreen> {
   @override
   Widget build(BuildContext context) {
 
-    final filtered = _hymnList.where((h) {
+    final filtered = hymnList.where((h) {
       final matchFav    = !_showFavoritesOnly || _favoriteNumbers.contains(h.number);
       final matchCat    = _selectedCategory == '전체' || h.category == _selectedCategory;
       final matchSearch = _searchQuery.isEmpty ||
@@ -110,7 +112,7 @@ class _HymnTopBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('찬송가', style: tt.headlineSmall),
-              Text('${_hymnList.length}장 수록', style: tt.labelMedium),
+              Text('${hymnList.length}장 수록', style: tt.labelMedium),
             ],
           ),
           GestureDetector(
@@ -254,7 +256,6 @@ class _HymnRow extends StatefulWidget {
 }
 
 class _HymnRowState extends State<_HymnRow> {
-  bool _isPlaying = false;
   bool _isFavorite = false;
 
   @override
@@ -329,20 +330,25 @@ class _HymnRowState extends State<_HymnRow> {
               ),
             ),
 
-            // 재생 버튼
+            // 재생 버튼 — 상세 화면으로 이동하며 자동 재생
             GestureDetector(
-              onTap: () => setState(() => _isPlaying = !_isPlaying),
+              onTap: () => Navigator.push(
+                context,
+                AppRouter.slide(
+                  page: HymnDetailScreen(hymn: widget.hymn, autoPlay: true),
+                ),
+              ),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 width: 34, height: 34,
                 decoration: BoxDecoration(
-                  color: _isPlaying ? cs.primary : cs.surfaceContainerHighest,
+                  color: cs.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  _isPlaying ? Icons.pause : Icons.play_arrow,
+                  Icons.play_arrow,
                   size: 18,
-                  color: _isPlaying ? cs.onPrimary : cs.primary,
+                  color: cs.primary,
                 ),
               ),
             ),
@@ -382,16 +388,99 @@ class _EmptyView extends StatelessWidget {
 // ── 찬송가 상세 화면 ──────────────────────────────────
 class HymnDetailScreen extends StatefulWidget {
   final HymnModel hymn;
-  const HymnDetailScreen({super.key, required this.hymn});
+  final bool      autoPlay;
+  const HymnDetailScreen({super.key, required this.hymn, this.autoPlay = false});
 
   @override
   State<HymnDetailScreen> createState() => _HymnDetailScreenState();
 }
 
 class _HymnDetailScreenState extends State<HymnDetailScreen> {
-  bool   _isPlaying = false;
-  int    _currentVerse = 0; // 현재 절
-  double _fontSize  = 17;
+  bool   _isPlaying    = false;
+  int    _currentVerse = 0;
+  double _fontSize     = 17;
+
+  final FlutterTts _tts = FlutterTts();
+
+  @override
+  void initState() {
+    super.initState();
+    _initTts();
+    if (widget.autoPlay) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _play());
+    }
+  }
+
+  Future<void> _initTts() async {
+    await _tts.setLanguage('ko-KR');
+    await _tts.setSpeechRate(0.42);
+    await _tts.setVolume(1.0);
+    await _tts.setPitch(0.92);
+    _tts.setCompletionHandler(_onVerseComplete);
+    _tts.setErrorHandler((_) {
+      if (mounted) setState(() => _isPlaying = false);
+    });
+  }
+
+  void _onVerseComplete() {
+    if (!mounted || !_isPlaying) return;
+    // 후렴이 있으면 절 뒤에 후렴 낭독
+    if (widget.hymn.chorus != null) {
+      _tts.speak(widget.hymn.chorus!).then((_) {
+        _advanceVerse();
+      });
+    } else {
+      _advanceVerse();
+    }
+  }
+
+  void _advanceVerse() {
+    if (!mounted || !_isPlaying) return;
+    if (_currentVerse < widget.hymn.verses.length - 1) {
+      setState(() => _currentVerse++);
+      _tts.speak(widget.hymn.verses[_currentVerse]);
+    } else {
+      // 마지막 절 완료
+      setState(() {
+        _isPlaying    = false;
+        _currentVerse = 0;
+      });
+    }
+  }
+
+  Future<void> _play() async {
+    setState(() => _isPlaying = true);
+    await _tts.speak(widget.hymn.verses[_currentVerse]);
+  }
+
+  Future<void> _pause() async {
+    await _tts.stop();
+    if (mounted) setState(() => _isPlaying = false);
+  }
+
+  Future<void> _togglePlayPause() async {
+    if (_isPlaying) {
+      await _pause();
+    } else {
+      await _play();
+    }
+  }
+
+  Future<void> _goToVerse(int index) async {
+    final wasPlaying = _isPlaying;
+    await _tts.stop();
+    setState(() {
+      _currentVerse = index;
+      _isPlaying    = false;
+    });
+    if (wasPlaying) await _play();
+  }
+
+  @override
+  void dispose() {
+    _tts.stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -462,7 +551,7 @@ class _HymnDetailScreenState extends State<HymnDetailScreen> {
                   itemBuilder: (context, i) {
                     final isSelected = _currentVerse == i;
                     return GestureDetector(
-                      onTap: () => setState(() => _currentVerse = i),
+                      onTap: () => _goToVerse(i),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
                         padding: const EdgeInsets.symmetric(
@@ -537,12 +626,12 @@ class _HymnDetailScreenState extends State<HymnDetailScreen> {
               isPlaying: _isPlaying,
               hymnNumber: widget.hymn.number,
               onPrevVerse: _currentVerse > 0
-                  ? () => setState(() => _currentVerse--)
+                  ? () => _goToVerse(_currentVerse - 1)
                   : null,
               onNextVerse: _currentVerse < widget.hymn.verses.length - 1
-                  ? () => setState(() => _currentVerse++)
+                  ? () => _goToVerse(_currentVerse + 1)
                   : null,
-              onPlayPause: () => setState(() => _isPlaying = !_isPlaying),
+              onPlayPause: _togglePlayPause,
             ),
           ],
         ),
@@ -699,92 +788,3 @@ class HymnModel {
   });
 }
 
-// ── 샘플 데이터 ────────────────────────────────────────
-// 실제 찬송가 가사는 저작권 확인 후 추가 필요
-const List<HymnModel> _hymnList = [
-  HymnModel(
-    number: 1,
-    title: '만복의 근원 하나님',
-    englishTitle: 'Praise God, from Whom All Blessings Flow',
-    category: '예배',
-    verses: [
-      '만복의 근원 하나님\n온 백성 찬송 드리세\n하늘과 땅의 천사들\n다 찬양 드리세',
-    ],
-  ),
-  HymnModel(
-    number: 21,
-    title: '찬양하라 복되신 구세주',
-    englishTitle: 'Blessed Redeemer',
-    category: '찬양',
-    verses: [
-      '찬양하라 복되신 구세주\n예수 내 왕 내 주님\n그 사랑 한없이 크셔라\n길이 찬양하리',
-      '주 예수 나의 왕이시니\n나 주만 따르리라\n그 은혜 영원히 변찮아\n날 인도하시네',
-    ],
-    chorus: '찬양 찬양 복되신 구세주\n찬양 찬양 주 예수\n길이길이 찬양하리\n주 예수 나의 왕',
-  ),
-  HymnModel(
-    number: 64,
-    title: '주 하나님 지으신 모든 세계',
-    englishTitle: 'How Great Thou Art',
-    category: '찬양',
-    verses: [
-      '주 하나님 지으신 모든 세계\n내 마음속에 그리어볼 때\n하늘의 별 울려 퍼지는 뇌성\n주님의 권능 우주에 찼네',
-      '숲 속에서 지저귀는 새소리\n고요한 시냇물 소리 들릴 때\n저 높은 산 아름다운 꽃 향기\n주님의 솜씨 거기서 보네',
-      '주 하나님 독생자를 보내사\n죄인인 나를 구원하셨네\n십자가에 달리신 그 모습이\n내 죄를 씻어 깨끗케 하네',
-      '주 예수님 다시 오실 그 날에\n큰 나팔 소리 울려 퍼지고\n온 세상을 다스리실 그 영광\n내 영혼 주를 찬양하리라',
-    ],
-    chorus: '내 주님 얼마나 크신지\n내 주님 얼마나 크신지\n내 영혼이 주를 찬양 드리네\n내 주님 얼마나 크신지',
-  ),
-  HymnModel(
-    number: 93,
-    title: '내 주를 가까이 하게 함은',
-    englishTitle: 'Nearer, My God, to Thee',
-    category: '기도',
-    verses: [
-      '내 주를 가까이 하게 함은\n십자가 짐 같은 고생이나\n내 일생 소원은 늘 찬송하면서\n주께 더 나아가기 원하네',
-      '내 고생하는 것 옳다 하고\n성도가 모두 찬양할 때에\n내 일생 소원은 늘 찬송하면서\n주께 더 나아가기 원하네',
-    ],
-    chorus: '주께 더 나아가\n주께 더 나아가\n내 일생 소원은 늘 찬송하면서\n주께 더 나아가기 원하네',
-  ),
-  HymnModel(
-    number: 405,
-    title: '예수 사랑하심은',
-    englishTitle: 'Jesus Loves Me',
-    category: '말씀',
-    verses: [
-      '예수 사랑하심은\n거룩하신 말씀에\n어린 우리들을\n품어 안으심이라',
-      '내가 연약할수록\n더욱 귀히 여기사\n하늘 나라 오도록\n성령 인도하시네',
-    ],
-    chorus: '날 사랑하심\n날 사랑하심\n날 사랑하심\n성경에 써 있네',
-  ),
-  HymnModel(
-    number: 310,
-    title: '아 하나님의 은혜로',
-    englishTitle: 'Grace Greater Than Our Sin',
-    category: '감사',
-    verses: [
-      '아 하나님의 은혜로\n이 죄인 살았네\n주 예수 내게 오셔서\n내 죄 씻으셨네',
-    ],
-    chorus: '은혜 은혜 내게 넘치는 은혜\n높고 높은 하늘 보다 크신 은혜\n내 죄보다 넓고 깊은 은혜\n아 하나님의 은혜로 살았네',
-  ),
-  HymnModel(
-    number: 492,
-    title: '주 안에 있는 나에게',
-    englishTitle: 'Blessed Assurance',
-    category: '위로',
-    verses: [
-      '주 안에 있는 나에게\n이제 근심 없도다\n주 피로 정케 됨으로\n큰 기쁨 누리네',
-      '주 안에 거하는 자마다\n복락이 충만하다\n그 팔에 안기어 있으니\n넉넉히 쉬리라',
-    ],
-    chorus: '이것이 나의 간증이요\n이것이 나의 찬송일세\n나 구원받은 그 날부터\n주 찬양하리로다',
-  ),
-  HymnModel(
-    number: 190,
-    title: '주 예수보다 더 귀한 것은 없네',
-    englishTitle: 'No, Not One',
-    category: '전도',
-    verses: [
-      '주 예수보다 더 귀한 것은 없네\n세상 부귀와 바꿀 수 없어\n주 예수보다 더 귀한 것은 없네\n세상 부귀와 바꿀 수 없어',
-    ],
-  ),
-];
