@@ -166,7 +166,7 @@ class _BibleAiScreenState extends State<BibleAiScreen> {
                         ),
                       ),
                       textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _ask(),
+                      onSubmitted: (_) { if (!_isLoading) _ask(); },
                     ),
                   ),
                   const SizedBox(width: 8),

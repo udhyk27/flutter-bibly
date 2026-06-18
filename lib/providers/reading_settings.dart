@@ -26,6 +26,15 @@ class ReadingSettings extends ChangeNotifier {
   String get translation   => _translation;
   String get language      => _language;
 
+  String get bibleId {
+    switch (_translation) {
+      case 'KJV': return 'kjv';
+      case 'NIV': return 'web';
+      case 'ESV': return 'asv';
+      default:    return 'korean';
+    }
+  }
+
   void setSpeechRate(double v) { _speechRate = v; notifyListeners(); }
   void setPitch(double v)      { _pitch = v;      notifyListeners(); }
 

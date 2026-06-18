@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../model/bible_models.dart';
 import '../screens/bible_reading_screen.dart';
+import '../services/bible_prefetch_service.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -15,9 +16,12 @@ class _SearchScreenState extends State<SearchScreen> {
   final _controller = TextEditingController();
   final _focusNode  = FocusNode();
 
-  List<_SearchResult> _results  = [];
-  bool                _searched = false;
-  bool                _loading  = false;
+  List<_SearchResult> _results       = [];
+  bool                _searched      = false;
+  bool                _loading       = false;
+  bool                _prefetching   = false;
+  int                 _prefetchDone  = 0;
+  int                 _prefetchTotal = 0;
 
   @override
   void initState() {
@@ -25,6 +29,21 @@ class _SearchScreenState extends State<SearchScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
+  }
+
+  Future<void> _startPrefetch() async {
+    if (_prefetching) return;
+    setState(() {
+      _prefetching   = true;
+      _prefetchDone  = 0;
+      _prefetchTotal = 0;
+    });
+    await BiblePrefetchService.prefetchAll(
+      onProgress: (done, total) {
+        if (mounted) setState(() { _prefetchDone = done; _prefetchTotal = total; });
+      },
+    );
+    if (mounted) setState(() => _prefetching = false);
   }
 
   @override
@@ -194,9 +213,20 @@ class _SearchScreenState extends State<SearchScreen> {
                   child: CircularProgressIndicator(
                       color: cs.primary))
                   : !_searched
-                  ? const _HintView()
+                  ? _HintView(
+                      prefetching:   _prefetching,
+                      prefetchDone:  _prefetchDone,
+                      prefetchTotal: _prefetchTotal,
+                      onPrefetch:    _startPrefetch,
+                    )
                   : _results.isEmpty
-                  ? _EmptyView(query: _controller.text)
+                  ? _EmptyView(
+                      query:         _controller.text,
+                      prefetching:   _prefetching,
+                      prefetchDone:  _prefetchDone,
+                      prefetchTotal: _prefetchTotal,
+                      onPrefetch:    _startPrefetch,
+                    )
                   : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -346,23 +376,43 @@ class _HighlightText extends StatelessWidget {
 
 // ── 초기 안내 ────────────────────────────────────────
 class _HintView extends StatelessWidget {
-  const _HintView();
+  final bool         prefetching;
+  final int          prefetchDone;
+  final int          prefetchTotal;
+  final VoidCallback onPrefetch;
+
+  const _HintView({
+    required this.prefetching,
+    required this.prefetchDone,
+    required this.prefetchTotal,
+    required this.onPrefetch,
+  });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.search, size: 48, color: cs.outline),
-          const SizedBox(height: 12),
-          Text('말씀을 검색해보세요',
-              style: TextStyle(fontSize: 15, color: cs.onSurface)),
-          const SizedBox(height: 6),
-          Text('이미 읽은 장에서 검색됩니다',
-              style: TextStyle(fontSize: 12, color: cs.secondary)),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search, size: 48, color: cs.outline),
+            const SizedBox(height: 12),
+            Text('말씀을 검색해보세요',
+                style: TextStyle(fontSize: 15, color: cs.onSurface)),
+            const SizedBox(height: 6),
+            Text('캐시된 장에서 검색됩니다',
+                style: TextStyle(fontSize: 12, color: cs.secondary)),
+            const SizedBox(height: 20),
+            _PrefetchButton(
+              prefetching:   prefetching,
+              prefetchDone:  prefetchDone,
+              prefetchTotal: prefetchTotal,
+              onPrefetch:    onPrefetch,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -370,24 +420,114 @@ class _HintView extends StatelessWidget {
 
 // ── 결과 없음 ────────────────────────────────────────
 class _EmptyView extends StatelessWidget {
-  final String query;
-  const _EmptyView({required this.query});
+  final String       query;
+  final bool         prefetching;
+  final int          prefetchDone;
+  final int          prefetchTotal;
+  final VoidCallback onPrefetch;
+
+  const _EmptyView({
+    required this.query,
+    required this.prefetching,
+    required this.prefetchDone,
+    required this.prefetchTotal,
+    required this.onPrefetch,
+  });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Center(
-      child: Column(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off, size: 48, color: cs.outline),
+            const SizedBox(height: 12),
+            Text('"$query" 검색 결과가 없어요',
+                style: TextStyle(fontSize: 15, color: cs.onSurface)),
+            const SizedBox(height: 6),
+            Text('전체 성경을 다운로드하면 더 넓게 검색할 수 있어요',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: cs.secondary)),
+            const SizedBox(height: 20),
+            _PrefetchButton(
+              prefetching:   prefetching,
+              prefetchDone:  prefetchDone,
+              prefetchTotal: prefetchTotal,
+              onPrefetch:    onPrefetch,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── 전체 다운로드 버튼 ────────────────────────────────
+class _PrefetchButton extends StatelessWidget {
+  final bool         prefetching;
+  final int          prefetchDone;
+  final int          prefetchTotal;
+  final VoidCallback onPrefetch;
+
+  const _PrefetchButton({
+    required this.prefetching,
+    required this.prefetchDone,
+    required this.prefetchTotal,
+    required this.onPrefetch,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    if (prefetching) {
+      final progress = prefetchTotal > 0
+          ? prefetchDone / prefetchTotal
+          : 0.0;
+      return Column(
+        children: [
+          SizedBox(
+            width: 220,
+            child: LinearProgressIndicator(
+              value:            progress,
+              backgroundColor:  cs.surfaceContainerHighest,
+              color:            cs.primary,
+              borderRadius:     BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$prefetchDone / $prefetchTotal 장',
+            style: TextStyle(fontSize: 12, color: cs.secondary),
+          ),
+        ],
+      );
+    }
+
+    final (cached, total) = BiblePrefetchService.getCoverage();
+    if (cached >= total) {
+      return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.search_off, size: 48, color: cs.outline),
-          const SizedBox(height: 12),
-          Text('"$query" 검색 결과가 없어요',
-              style: TextStyle(fontSize: 15, color: cs.onSurface)),
-          const SizedBox(height: 6),
-          Text('더 많은 장을 읽으면 검색 범위가 넓어져요',
-              style: TextStyle(fontSize: 12, color: cs.secondary)),
+          Icon(Icons.check_circle_outline, size: 14, color: cs.primary),
+          const SizedBox(width: 4),
+          Text('전체 성경 다운로드 완료',
+              style: TextStyle(fontSize: 12, color: cs.primary)),
         ],
+      );
+    }
+
+    return OutlinedButton.icon(
+      onPressed: onPrefetch,
+      icon: const Icon(Icons.download_outlined, size: 16),
+      label: Text('전체 성경 다운로드 ($cached/$total장 캐시됨)'),
+      style: OutlinedButton.styleFrom(
+        textStyle: const TextStyle(fontSize: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }

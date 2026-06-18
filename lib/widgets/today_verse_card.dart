@@ -32,9 +32,9 @@ class _TodayVerseCardState extends State<TodayVerseCard> {
   // 해당 장으로 이동
   void _navigateToVerse(BuildContext context) {
     if (_verse == null) return;
-    final book = [...oldTestament, ...newTestament]
-        .firstWhere((b) => b.id == _verse!.bookId,
-        orElse: () => oldTestament.first);
+    final allBooks = [...oldTestament, ...newTestament];
+    final book = allBooks.where((b) => b.id == _verse!.bookId).firstOrNull;
+    if (book == null) return; // bookId 매칭 실패 시 이동하지 않음
     Navigator.push(
       context,
       MaterialPageRoute(

@@ -74,7 +74,7 @@ class BibleApiService {
     required String bibleId,
   }) async {
     final url = '$_baseUrl/$bibleId/$bookNumber/$chapter.json';
-    final res = await http.get(Uri.parse(url));
+    final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 30));
 
     if (res.statusCode != 200) {
       throw Exception('본문 로딩 실패 (status: ${res.statusCode})');

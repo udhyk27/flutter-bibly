@@ -141,6 +141,9 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
   }
 
   Future<void> _loadChapter() async {
+    // context는 첫 await 이전에 읽어야 함 (use_build_context_synchronously)
+    final bibleId = context.read<ReadingSettings>().bibleId;
+
     setState(() {
       _isLoading = true;
       _error = null;
@@ -168,7 +171,8 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
     try {
       final chapter = await BibleApiService.getChapter(
         bookNumber: widget.book.number,
-        chapter: _currentChapter,
+        chapter:    _currentChapter,
+        bibleId:    bibleId,
       );
       setState(() {
         _chapter = chapter;

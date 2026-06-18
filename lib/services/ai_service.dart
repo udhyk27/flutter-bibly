@@ -33,7 +33,7 @@ class AiService {
       Uri.parse(_getBibleStoryUrl),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'bookName': bookName}),
-    );
+    ).timeout(const Duration(seconds: 30));
 
     debugPrint('getBibleStory 상태코드: ${response.statusCode}');
     debugPrint('getBibleStory 응답: ${response.body}');
@@ -62,7 +62,7 @@ class AiService {
         'verse': verseText,
         'question': '이 구절을 2~3문장으로 간결하게 설명해주세요.',
       }),
-    );
+    ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -86,7 +86,7 @@ class AiService {
         'question': question,
         'aiModel': aiModel,
       }),
-    );
+    ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
