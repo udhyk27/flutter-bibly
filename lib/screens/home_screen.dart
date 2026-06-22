@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../model/bible_models.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/today_verse_card.dart';
 import '../widgets/main_menu_grid.dart';
 import '../widgets/recent_section.dart';
 import '../widgets/weekly_reading.dart';
-import '../services/reading_date_service.dart'; // 추가
+import '../services/reading_date_service.dart';
+import '../services/recent_read_service.dart';
+import '../core/app_router.dart';
+import 'bible_reading_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,10 +29,40 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
     _loadReadDays();
   }
 
-  // 읽기 날짜 로드
   Future<void> _loadReadDays() async {
     final days = await ReadingDateService.checkedDaysThisWeek();
     if (mounted) setState(() => _readDays = days);
+  }
+
+  Future<void> _onDayTap(DateTime day, bool isChecked) async {
+    final recents = await RecentReadService.getAll();
+    if (recents.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('최근 읽은 기록이 없어요'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final latest = recents.first;
+    final allBooks = [...oldTestament, ...newTestament];
+    final book = allBooks.cast<BibleBookModel?>().firstWhere(
+      (b) => b!.number == latest.bookNumber,
+      orElse: () => null,
+    );
+    if (book == null || !mounted) return;
+
+    await Navigator.push(
+      context,
+      AppRouter.slide(
+        page: BibleReadingScreen(book: book, chapterNumber: latest.chapter),
+      ),
+    );
+    _loadReadDays();
+    setState(() => _recentKey++);
   }
 
   @override
@@ -71,8 +105,9 @@ class HomeScreenState extends State<HomeScreen> with RouteAware {
                     const SizedBox(height: 10),
                     const TodayVerseCard(),
                     const SizedBox(height: 10),
-                    AbsorbPointer(
-                      child: WeeklyReadingWidget(checkedDays: _readDays), // 수정
+                    WeeklyReadingWidget(
+                      checkedDays: _readDays,
+                      onDayTap: _onDayTap,
                     ),
                     const SizedBox(height: 10),
                     const MainMenuGrid(),

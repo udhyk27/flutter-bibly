@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 
 /// 이번 주(월~일) 성경 읽기 현황 위젯
 /// - checkedDays: 완료된 날짜 Set (BibleScreen 등 외부에서 주입)
+/// - onDayTap: 날짜 뱃지 탭 시 호출 (읽은 날짜 여부 전달)
 class WeeklyReadingWidget extends StatelessWidget {
   final Set<DateTime> checkedDays;
+  final void Function(DateTime day, bool isChecked)? onDayTap;
 
-  const WeeklyReadingWidget({super.key, this.checkedDays = const {}});
+  const WeeklyReadingWidget({
+    super.key,
+    this.checkedDays = const {},
+    this.onDayTap,
+  });
 
   /// 이번 주 월요일 ~ 일요일 날짜 목록 반환
   static List<DateTime> currentWeekDays() {
@@ -73,6 +79,7 @@ class WeeklyReadingWidget extends StatelessWidget {
                 isPast: isPast,
                 cs: cs,
                 tt: tt,
+                onTap: onDayTap != null ? () => onDayTap!(day, isChecked) : null,
               );
             }),
           ),
@@ -86,13 +93,14 @@ class WeeklyReadingWidget extends StatelessWidget {
 // 개별 날짜 뱃지
 // ─────────────────────────────────────────────────────────
 class _DayBadge extends StatelessWidget {
-  final String label; // 월·화·수…
-  final int date; // 숫자 날짜
+  final String label;
+  final int date;
   final bool isChecked;
   final bool isToday;
   final bool isPast;
   final ColorScheme cs;
   final TextTheme tt;
+  final VoidCallback? onTap;
 
   const _DayBadge({
     required this.label,
@@ -102,6 +110,7 @@ class _DayBadge extends StatelessWidget {
     required this.isPast,
     required this.cs,
     required this.tt,
+    this.onTap,
   });
 
   @override
@@ -125,7 +134,9 @@ class _DayBadge extends StatelessWidget {
       circleText = cs.onSurface.withValues(alpha: 0.6);
     }
 
-    return Column(
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // 요일 라벨
@@ -162,6 +173,7 @@ class _DayBadge extends StatelessWidget {
                 ),
         ),
       ],
+      ),
     );
   }
 }
