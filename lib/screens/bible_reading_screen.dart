@@ -19,11 +19,13 @@ import '../services/verse_note_service.dart';
 class BibleReadingScreen extends StatefulWidget {
   final BibleBookModel book;
   final int chapterNumber;
+  final int? initialVerseNumber;
 
   const BibleReadingScreen({
     super.key,
     required this.book,
     required this.chapterNumber,
+    this.initialVerseNumber,
   });
 
   @override
@@ -46,6 +48,8 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
   final Map<String, String> _aiAnswers = {};
   final Map<String, bool> _aiLoading = {};
 
+  final ScrollController _listScrollController = ScrollController();
+
   // ── TTS ──────────────────────────────────────────────
   final FlutterTts _tts = FlutterTts();
   bool _isSpeaking = false;
@@ -64,6 +68,9 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
   void initState() {
     super.initState();
     _currentChapter = widget.chapterNumber;
+    if (widget.initialVerseNumber != null) {
+      _selectedVerseId = '${widget.initialVerseNumber}';
+    }
     _initTts();
     _loadChapter();
     if (!_screenshotMode) {
@@ -89,7 +96,8 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
   @override
   void dispose() {
     _tts.stop();
-    _bannerAd?.dispose(); // ✅ 메모리 해제
+    _bannerAd?.dispose();
+    _listScrollController.dispose();
     super.dispose();
   }
   // ─────────────────────────────────────────────────────
@@ -180,12 +188,31 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
       });
       _loadFavoriteState();
       _loadHighlightsAndNotes();
+      _scrollToInitialVerse(chapter);
     } catch (e) {
       setState(() {
         _error = e.toString();
         _isLoading = false;
       });
     }
+  }
+
+  void _scrollToInitialVerse(BibleChapterModel chapter) {
+    final targetVerse = widget.initialVerseNumber;
+    if (targetVerse == null || !_listScrollController.hasClients) return;
+    final index = chapter.verses.indexWhere((v) => v.verse == targetVerse);
+    if (index < 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_listScrollController.hasClients) return;
+      const estimatedVerseHeight = 72.0;
+      final offset = (index * estimatedVerseHeight)
+          .clamp(0.0, _listScrollController.position.maxScrollExtent);
+      _listScrollController.animateTo(
+        offset,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   Future<void> _goToChapter(int chapter) async {
@@ -474,6 +501,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
                               onHighlight: _onHighlight,
                               onNote: _onNote,
                               onAskAI: _askAI,
+                              scrollController: _listScrollController,
                             ),
                           ),
                         ),
@@ -779,6 +807,7 @@ class _VerseList extends StatelessWidget {
   final Function(String) onHighlight;
   final Function(String, String) onNote;
   final Function(String, String) onAskAI;
+  final ScrollController? scrollController;
 
   const _VerseList({
     required this.verses,
@@ -795,11 +824,13 @@ class _VerseList extends StatelessWidget {
     required this.onHighlight,
     required this.onNote,
     required this.onAskAI,
+    this.scrollController,
   });
 
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
+      controller: scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       itemCount: verses.length + 1,
       itemBuilder: (context, index) {

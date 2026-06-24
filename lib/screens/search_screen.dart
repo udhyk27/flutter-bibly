@@ -274,8 +274,9 @@ class _ResultRow extends StatelessWidget {
         context,
         MaterialPageRoute(
           builder: (_) => BibleReadingScreen(
-            book:          result.book,
-            chapterNumber: result.chapter,
+            book:               result.book,
+            chapterNumber:      result.chapter,
+            initialVerseNumber: result.verse,
           ),
         ),
       ),
