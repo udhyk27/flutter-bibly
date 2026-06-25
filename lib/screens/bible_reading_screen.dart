@@ -47,6 +47,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
   final Map<String, String> _notes = {};
   final Map<String, String> _aiAnswers = {};
   final Map<String, bool> _aiLoading = {};
+  final Set<int> _verseFavorites = {};
 
   final ScrollController _listScrollController = ScrollController();
 
@@ -238,11 +239,14 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
   }
 
   Future<void> _loadFavoriteState() async {
-    final result = await FavoriteService.isFavorite(
-      widget.book.id,
-      _currentChapter,
-    );
-    setState(() => _isFavorite = result);
+    final result = await FavoriteService.isFavorite(widget.book.id, _currentChapter);
+    final verseSet = await FavoriteService.favoritedVersesInChapter(widget.book.id, _currentChapter);
+    if (mounted) {
+      setState(() {
+        _isFavorite = result;
+        _verseFavorites..clear()..addAll(verseSet);
+      });
+    }
   }
 
   void _onVerseTap(String verseId) {
@@ -266,6 +270,28 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
       );
     }
     setState(() => _isFavorite = !_isFavorite);
+  }
+
+  Future<void> _toggleVerseFavorite(String verseId, String verseText) async {
+    final verse = int.tryParse(verseId);
+    if (verse == null) return;
+    if (_verseFavorites.contains(verse)) {
+      await FavoriteService.removeVerse(widget.book.id, _currentChapter, verse);
+      setState(() => _verseFavorites.remove(verse));
+    } else {
+      await FavoriteService.addVerse(
+        bookId:          widget.book.id,
+        bookName:        widget.book.name,
+        bookEnglishName: widget.book.englishName,
+        bookNumber:      widget.book.number,
+        chapter:         _currentChapter,
+        totalChapters:   widget.book.totalChapters,
+        genre:           widget.book.genre,
+        verse:           verse,
+        verseText:       verseText,
+      );
+      setState(() => _verseFavorites.add(verse));
+    }
   }
 
   void _onHighlight(String verseId) {
@@ -493,6 +519,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
                               notes: _notes,
                               aiAnswers: _aiAnswers,
                               aiLoading: _aiLoading,
+                              verseFavorites: _verseFavorites,
                               fontSize: settings.fontSize,
                               lineHeight: settings.lineHeight,
                               showVerseNum: settings.showVerseNum,
@@ -501,6 +528,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
                               onHighlight: _onHighlight,
                               onNote: _onNote,
                               onAskAI: _askAI,
+                              onVerseFavorite: _toggleVerseFavorite,
                               scrollController: _listScrollController,
                             ),
                           ),
@@ -803,10 +831,12 @@ class _VerseList extends StatelessWidget {
   final double lineHeight;
   final bool showVerseNum;
   final bool showHighlight;
+  final Set<int> verseFavorites;
   final Function(String) onVerseTap;
   final Function(String) onHighlight;
   final Function(String, String) onNote;
   final Function(String, String) onAskAI;
+  final Function(String, String) onVerseFavorite;
   final ScrollController? scrollController;
 
   const _VerseList({
@@ -816,6 +846,7 @@ class _VerseList extends StatelessWidget {
     required this.notes,
     required this.aiAnswers,
     required this.aiLoading,
+    required this.verseFavorites,
     required this.fontSize,
     required this.lineHeight,
     required this.showVerseNum,
@@ -824,6 +855,7 @@ class _VerseList extends StatelessWidget {
     required this.onHighlight,
     required this.onNote,
     required this.onAskAI,
+    required this.onVerseFavorite,
     this.scrollController,
   });
 
@@ -844,6 +876,7 @@ class _VerseList extends StatelessWidget {
         final highlightColor = showHighlight ? highlights[verseId] : null;
         final noteText = notes[verseId];
         final hasNote = noteText != null;
+        final isVerseFav = verseFavorites.contains(verse.verse);
 
         return AnimatedSize(
           duration: const Duration(milliseconds: 200),
@@ -869,9 +902,11 @@ class _VerseList extends StatelessWidget {
                   text: verse.text,
                   isHighlighted: highlights.containsKey(verseId),
                   hasNote: hasNote,
+                  isVerseFavorite: isVerseFav,
                   onHighlight: () => onHighlight(verseId),
                   onNote: () => onNote(verseId, verse.text),
                   onAskAI: onAskAI,
+                  onVerseFavorite: () => onVerseFavorite(verseId, verse.text),
                 ),
               if (hasNote)
                 _NoteBubble(
@@ -986,18 +1021,22 @@ class _ActionBar extends StatelessWidget {
   final String text;
   final bool isHighlighted;
   final bool hasNote;
+  final bool isVerseFavorite;
   final VoidCallback onHighlight;
   final VoidCallback onNote;
   final Function(String, String) onAskAI;
+  final VoidCallback onVerseFavorite;
 
   const _ActionBar({
     required this.verseId,
     required this.text,
     required this.isHighlighted,
     required this.hasNote,
+    required this.isVerseFavorite,
     required this.onHighlight,
     required this.onNote,
     required this.onAskAI,
+    required this.onVerseFavorite,
   });
 
   @override
@@ -1035,6 +1074,13 @@ class _ActionBar extends StatelessWidget {
               icon: hasNote ? Icons.edit_note : Icons.note_add_outlined,
               isActive: hasNote,
               onTap: onNote,
+            ),
+            const SizedBox(width: 6),
+            _ActionChip(
+              label: isVerseFavorite ? '즐겨찾기 해제' : '즐겨찾기',
+              icon: isVerseFavorite ? Icons.bookmark : Icons.bookmark_outline,
+              isActive: isVerseFavorite,
+              onTap: onVerseFavorite,
             ),
             const SizedBox(width: 6),
             _ActionChip(

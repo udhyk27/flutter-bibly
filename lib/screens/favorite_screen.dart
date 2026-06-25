@@ -35,7 +35,11 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
   }
 
   Future<void> _delete(FavoriteModel fav) async {
-    await FavoriteService.remove(fav.bookId, fav.chapter);
+    if (fav.isVerseFavorite) {
+      await FavoriteService.removeVerse(fav.bookId, fav.chapter, fav.verse!);
+    } else {
+      await FavoriteService.remove(fav.bookId, fav.chapter);
+    }
     final list = await FavoriteService.getAll();
     if (mounted) setState(() => _favorites = list);
   }
@@ -181,8 +185,9 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => BibleReadingScreen(
-          book:          book,
-          chapterNumber: fav.chapter,
+          book:               book,
+          chapterNumber:      fav.chapter,
+          initialVerseNumber: fav.verse,
         ),
       ),
     ).then((_) => _load());
@@ -353,7 +358,7 @@ class _GroupedView extends StatelessWidget {
                       style: tt.titleSmall?.copyWith(
                           color: cs.primary, fontWeight: FontWeight.w600)),
                   const SizedBox(width: 6),
-                  Text('${items.length}장',
+                  Text('${items.length}개',
                       style: tt.labelSmall?.copyWith(color: cs.secondary)),
                 ],
               ),
@@ -441,10 +446,16 @@ class _FavoriteRow extends StatelessWidget {
               Container(
                 width: 36, height: 36,
                 decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest,
+                  color: favorite.isVerseFavorite
+                      ? cs.secondary.withValues(alpha: 0.12)
+                      : cs.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(9),
                 ),
-                child: Icon(Icons.star, size: 16, color: cs.primary),
+                child: Icon(
+                  favorite.isVerseFavorite ? Icons.bookmark : Icons.star,
+                  size: 16,
+                  color: favorite.isVerseFavorite ? cs.secondary : cs.primary,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -453,15 +464,28 @@ class _FavoriteRow extends StatelessWidget {
                   children: [
                     Text(
                       compact
-                          ? '${favorite.chapter}장'
-                          : '${favorite.bookName} ${favorite.chapter}장',
-                      style: tt.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600),
+                          ? (favorite.isVerseFavorite
+                              ? '${favorite.chapter}장 ${favorite.verse}절'
+                              : '${favorite.chapter}장')
+                          : (favorite.isVerseFavorite
+                              ? '${favorite.bookName} ${favorite.chapter}:${favorite.verse}'
+                              : '${favorite.bookName} ${favorite.chapter}장'),
+                      style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                     ),
-                    if (!compact) ...[
+                    if (favorite.isVerseFavorite && favorite.verseText != null) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        favorite.verseText!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: tt.bodySmall?.copyWith(
+                          color: cs.onSurface.withValues(alpha: 0.65),
+                          height: 1.4,
+                        ),
+                      ),
+                    ] else if (!compact) ...[
                       const SizedBox(height: 2),
-                      Text(favorite.bookEnglishName,
-                          style: tt.labelMedium),
+                      Text(favorite.bookEnglishName, style: tt.labelMedium),
                     ],
                   ],
                 ),

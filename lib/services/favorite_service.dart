@@ -12,12 +12,11 @@ class FavoriteService {
     if (raw == null) return [];
     final list  = jsonDecode(raw) as List;
     final favorites = list.map((e) => FavoriteModel.fromJson(e)).toList();
-    // 최신순 정렬
     favorites.sort((a, b) => b.savedAt.compareTo(a.savedAt));
     return favorites;
   }
 
-  // ── 즐겨찾기 추가 ─────────────────────────────────
+  // ── 장 즐겨찾기 추가 ─────────────────────────────
   static Future<void> add({
     required String bookId,
     required String bookName,
@@ -28,10 +27,7 @@ class FavoriteService {
     required String genre,
   }) async {
     final list = await getAll();
-
-    // 같은 책+장 이미 있으면 제거 후 새로 추가 (날짜 갱신)
-    list.removeWhere((e) => e.bookId == bookId && e.chapter == chapter);
-
+    list.removeWhere((e) => e.bookId == bookId && e.chapter == chapter && e.verse == null);
     list.insert(0, FavoriteModel(
       bookId:          bookId,
       bookName:        bookName,
@@ -42,21 +38,71 @@ class FavoriteService {
       genre:           genre,
       savedAt:         DateTime.now(),
     ));
-
     await _save(list);
   }
 
-  // ── 즐겨찾기 제거 ─────────────────────────────────
+  // ── 구절 즐겨찾기 추가 ────────────────────────────
+  static Future<void> addVerse({
+    required String bookId,
+    required String bookName,
+    required String bookEnglishName,
+    required int    bookNumber,
+    required int    chapter,
+    required int    totalChapters,
+    required String genre,
+    required int    verse,
+    required String verseText,
+  }) async {
+    final list = await getAll();
+    list.removeWhere((e) => e.bookId == bookId && e.chapter == chapter && e.verse == verse);
+    list.insert(0, FavoriteModel(
+      bookId:          bookId,
+      bookName:        bookName,
+      bookEnglishName: bookEnglishName,
+      bookNumber:      bookNumber,
+      chapter:         chapter,
+      totalChapters:   totalChapters,
+      genre:           genre,
+      savedAt:         DateTime.now(),
+      verse:           verse,
+      verseText:       verseText,
+    ));
+    await _save(list);
+  }
+
+  // ── 장 즐겨찾기 제거 ─────────────────────────────
   static Future<void> remove(String bookId, int chapter) async {
     final list = await getAll();
-    list.removeWhere((e) => e.bookId == bookId && e.chapter == chapter);
+    list.removeWhere((e) => e.bookId == bookId && e.chapter == chapter && e.verse == null);
     await _save(list);
   }
 
-  // ── 즐겨찾기 여부 확인 ────────────────────────────
+  // ── 구절 즐겨찾기 제거 ────────────────────────────
+  static Future<void> removeVerse(String bookId, int chapter, int verse) async {
+    final list = await getAll();
+    list.removeWhere((e) => e.bookId == bookId && e.chapter == chapter && e.verse == verse);
+    await _save(list);
+  }
+
+  // ── 장 즐겨찾기 여부 확인 ─────────────────────────
   static Future<bool> isFavorite(String bookId, int chapter) async {
     final list = await getAll();
-    return list.any((e) => e.bookId == bookId && e.chapter == chapter);
+    return list.any((e) => e.bookId == bookId && e.chapter == chapter && e.verse == null);
+  }
+
+  // ── 구절 즐겨찾기 여부 확인 ──────────────────────
+  static Future<bool> isVerseFavorite(String bookId, int chapter, int verse) async {
+    final list = await getAll();
+    return list.any((e) => e.bookId == bookId && e.chapter == chapter && e.verse == verse);
+  }
+
+  // ── 특정 장의 즐겨찾기된 구절 번호 Set 반환 ────────
+  static Future<Set<int>> favoritedVersesInChapter(String bookId, int chapter) async {
+    final list = await getAll();
+    return list
+        .where((e) => e.bookId == bookId && e.chapter == chapter && e.verse != null)
+        .map((e) => e.verse!)
+        .toSet();
   }
 
   // ── 내부 저장 ────────────────────────────────────

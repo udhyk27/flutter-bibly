@@ -8,6 +8,10 @@ class FavoriteModel {
   final String   genre;
   final DateTime savedAt;
 
+  // null이면 장 즐겨찾기, 값이 있으면 구절 즐겨찾기
+  final int?    verse;
+  final String? verseText;
+
   const FavoriteModel({
     required this.bookId,
     required this.bookName,
@@ -17,12 +21,15 @@ class FavoriteModel {
     required this.totalChapters,
     required this.genre,
     required this.savedAt,
+    this.verse,
+    this.verseText,
   });
 
-  // 고유 키 — 같은 책+장 중복 방지
-  String get key => '${bookId}_$chapter';
+  bool get isVerseFavorite => verse != null;
 
-  // 홈 화면 표시용 "3/19 11:11"
+  // 고유 키 — 장 즐겨찾기: bookId_chapter / 구절 즐겨찾기: bookId_chapter_verse
+  String get key => verse != null ? '${bookId}_${chapter}_$verse' : '${bookId}_$chapter';
+
   String get formattedDate {
     final m  = savedAt.month;
     final d  = savedAt.day;
@@ -40,6 +47,8 @@ class FavoriteModel {
     'totalChapters':   totalChapters,
     'genre':           genre,
     'savedAt':         savedAt.millisecondsSinceEpoch,
+    if (verse != null) 'verse': verse,
+    if (verseText != null) 'verseText': verseText,
   };
 
   factory FavoriteModel.fromJson(Map<String, dynamic> json) => FavoriteModel(
@@ -50,7 +59,8 @@ class FavoriteModel {
     chapter:         json['chapter']         as int,
     totalChapters:   json['totalChapters']   as int,
     genre:           json['genre']           as String,
-    savedAt:         DateTime.fromMillisecondsSinceEpoch(
-        json['savedAt'] as int),
+    savedAt:         DateTime.fromMillisecondsSinceEpoch(json['savedAt'] as int),
+    verse:           json['verse']     as int?,
+    verseText:       json['verseText'] as String?,
   );
 }
