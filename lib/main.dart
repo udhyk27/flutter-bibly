@@ -4,6 +4,7 @@ import 'package:Bibly/services/config_api_service.dart';
 import 'package:Bibly/services/notification_service.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
@@ -21,9 +22,13 @@ void main() async {
   try {
     await Firebase.initializeApp();
     // 앱 무결성 검증(App Check) — 위조된 요청으로부터 Cloud Functions를 보호한다.
+    // 디버그 빌드에서는 debug provider를 사용해야 개발 중에도 토큰이 발급된다.
+    // (콘솔의 App Check에 디버그 토큰을 등록해 두어야 함)
     await FirebaseAppCheck.instance.activate(
-      androidProvider: AndroidProvider.playIntegrity,
-      appleProvider: AppleProvider.appAttest,
+      androidProvider:
+          kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+      appleProvider:
+          kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
     );
     // Remote Config는 설정 화면 등 후속 화면에서만 쓰이므로
     // 시작 지연을 피하기 위해 await하지 않고 백그라운드로 로딩한다.
