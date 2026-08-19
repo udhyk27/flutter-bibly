@@ -2,6 +2,7 @@ import 'package:Bibly/providers/auth_provider.dart';
 import 'package:Bibly/providers/reading_settings.dart';
 import 'package:Bibly/services/config_api_service.dart';
 import 'package:Bibly/services/notification_service.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -16,12 +17,25 @@ final RouteObserver<ModalRoute> routeObserver = RouteObserver<ModalRoute>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
 
-  ConfigApiService().getRemoteConfig();
+  try {
+    await Firebase.initializeApp();
+    // 앱 무결성 검증(App Check) — 위조된 요청으로부터 Cloud Functions를 보호한다.
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.playIntegrity,
+      appleProvider: AppleProvider.appAttest,
+    );
+    // Remote Config는 설정 화면 등 후속 화면에서만 쓰이므로
+    // 시작 지연을 피하기 위해 await하지 않고 백그라운드로 로딩한다.
+    ConfigApiService().getRemoteConfig();
+    await MobileAds.instance.initialize();
+    await NotificationService().init();
+  } catch (e, st) {
+    // 초기화 일부가 실패해도 앱은 계속 실행되도록 한다.
+    debugPrint('앱 초기화 오류: $e\n$st');
+  }
 
-  await MobileAds.instance.initialize();
-  await NotificationService().init();
+  // 성경 로컬 캐시(Hive)는 앱 동작에 필수이므로 실패 시 그대로 보고한다.
   await BibleApiService.init();
 
   final prefs = await SharedPreferences.getInstance();

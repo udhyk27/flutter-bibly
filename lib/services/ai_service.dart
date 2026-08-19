@@ -1,10 +1,10 @@
 import 'dart:convert';
 
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 
 import '../model/bible_story_model.dart';
-import 'config_api_service.dart';
 
 // 캐시 모델
 class _CachedStory {
@@ -21,6 +21,21 @@ class AiService {
   // 캐시 저장소
   static final Map<String, _CachedStory> _storyCache = {};
 
+  // App Check 토큰을 실은 공통 헤더 생성.
+  // 토큰이 없어도(발급 실패 등) 요청은 보내되, 서버가 최종 판단한다.
+  static Future<Map<String, String>> _headers() async {
+    final headers = {'Content-Type': 'application/json'};
+    try {
+      final token = await FirebaseAppCheck.instance.getToken();
+      if (token != null) {
+        headers['X-Firebase-AppCheck'] = token;
+      }
+    } catch (e) {
+      debugPrint('App Check 토큰 발급 실패: $e');
+    }
+    return headers;
+  }
+
   static Future<BibleStoryModel> getBibleStory(String bookName) async {
     // 캐시 확인 - 1시간 이내면 캐시 반환
     final cached = _storyCache[bookName];
@@ -31,7 +46,7 @@ class AiService {
 
     final response = await http.post(
       Uri.parse(_getBibleStoryUrl),
-      headers: {'Content-Type': 'application/json'},
+      headers: await _headers(),
       body: jsonEncode({'bookName': bookName}),
     ).timeout(const Duration(seconds: 30));
 
@@ -57,7 +72,7 @@ class AiService {
   static Future<String> askVerse(String verseText) async {
     final response = await http.post(
       Uri.parse(_askBibleUrl),
-      headers: {'Content-Type': 'application/json'},
+      headers: await _headers(),
       body: jsonEncode({
         'verse': verseText,
         'question': '이 구절을 2~3문장으로 간결하게 설명해주세요.',
@@ -66,7 +81,11 @@ class AiService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return data['answer'];
+      final answer = data['answer'];
+      if (answer is! String) {
+        throw Exception('AI 응답 형식 오류');
+      }
+      return answer;
     } else {
       throw Exception('AI 응답 오류: ${response.statusCode}');
     }
@@ -76,21 +95,23 @@ class AiService {
     required String verse,
     required String question,
   }) async {
-    final aiModel = ConfigApiService().aiModel;
-
+    // AI 모델은 서버(Remote Config)에서 결정하므로 클라이언트에서 보내지 않는다.
     final response = await http.post(
       Uri.parse(_askBibleUrl),
-      headers: {'Content-Type': 'application/json'},
+      headers: await _headers(),
       body: jsonEncode({
         'verse': verse,
         'question': question,
-        'aiModel': aiModel,
       }),
     ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return data['answer'];
+      final answer = data['answer'];
+      if (answer is! String) {
+        throw Exception('AI 응답 형식 오류');
+      }
+      return answer;
     } else {
       throw Exception('AI 응답 오류: ${response.statusCode}');
     }

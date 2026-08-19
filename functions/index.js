@@ -3,19 +3,58 @@ const { defineSecret } = require("firebase-functions/params");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { initializeApp } = require("firebase-admin/app");
 const { getRemoteConfig } = require("firebase-admin/remote-config");
+const { getAppCheck } = require("firebase-admin/app-check");
 
 initializeApp();
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
-// Remote Config에서 aiModel 가져오기
+// App Check 토큰 검증. 유효하면 true, 없거나 위조면 res로 401 응답 후 false.
+// (raw HTTP 함수는 App Check가 자동 적용되지 않아 헤더를 직접 검증한다.)
+async function verifyAppCheck(req, res) {
+  const token = req.header("X-Firebase-AppCheck");
+  if (!token) {
+    res.status(401).json({ error: "App Check 토큰이 없습니다." });
+    return false;
+  }
+  try {
+    await getAppCheck().verifyToken(token);
+    return true;
+  } catch (e) {
+    console.error("App Check 검증 실패:", e);
+    res.status(401).json({ error: "유효하지 않은 App Check 토큰입니다." });
+    return false;
+  }
+}
+
+const DEFAULT_AI_MODEL = "gemini-2.5-flash-lite";
+
+// Remote Config 템플릿은 매 요청마다 받지 않고 10분간 캐싱한다.
+const AI_MODEL_TTL_MS = 10 * 60 * 1000;
+let _aiModelCache = { value: DEFAULT_AI_MODEL, fetchedAt: 0 };
+
+// Remote Config에서 aiModel 가져오기 (앱은 ai_model, 과거 설정은 aiModel 키를 사용)
 async function getAiModel() {
+  const now = Date.now();
+  if (now - _aiModelCache.fetchedAt < AI_MODEL_TTL_MS) {
+    return _aiModelCache.value;
+  }
+
   try {
     const rc = getRemoteConfig();
     const template = await rc.getTemplate();
-    return template.parameters?.aiModel?.defaultValue?.value ?? "gemini-2.5-flash-lite";
+    const params = template.parameters ?? {};
+    const value =
+      params.ai_model?.defaultValue?.value ??
+      params.aiModel?.defaultValue?.value ??
+      DEFAULT_AI_MODEL;
+
+    _aiModelCache = { value, fetchedAt: now };
+    return value;
   } catch (e) {
-    return "gemini-2.5-flash-lite";
+    console.error("Remote Config 조회 실패:", e);
+    // 실패 시 마지막으로 알려진 값(없으면 기본값) 사용
+    return _aiModelCache.value;
   }
 }
 
@@ -25,9 +64,11 @@ exports.askBible = onRequest(
     res.set("Access-Control-Allow-Origin", "*");
     if (req.method === "OPTIONS") {
       res.set("Access-Control-Allow-Methods", "POST");
-      res.set("Access-Control-Allow-Headers", "Content-Type");
+      res.set("Access-Control-Allow-Headers", "Content-Type, X-Firebase-AppCheck");
       return res.status(204).send("");
     }
+
+    if (!(await verifyAppCheck(req, res))) return;
 
     try {
       const { verse, question } = req.body;
@@ -64,9 +105,11 @@ exports.getBibleStory = onRequest(
     res.set("Access-Control-Allow-Origin", "*");
     if (req.method === "OPTIONS") {
       res.set("Access-Control-Allow-Methods", "POST");
-      res.set("Access-Control-Allow-Headers", "Content-Type");
+      res.set("Access-Control-Allow-Headers", "Content-Type, X-Firebase-AppCheck");
       return res.status(204).send("");
     }
+
+    if (!(await verifyAppCheck(req, res))) return;
 
     try {
       const { bookName } = req.body;

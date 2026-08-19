@@ -17,9 +17,7 @@ class ConfigApiService {
 
   // 인스턴스에 변수 저장
   String aosVersion = "";
-  String aiModel = "";
   String playStoreUrl = "";
-  String appStoreUrl = "";
   String privacyUrl = "";
   String termsUrl = "";
 
@@ -34,7 +32,6 @@ class ConfigApiService {
 
       await rc.fetchAndActivate();
 
-      aiModel = rc.getString('ai_model');
       aosVersion = rc.getString('app_version_aos');
       playStoreUrl = rc.getString('store_aos');
       privacyUrl = rc.getString('privacy');
