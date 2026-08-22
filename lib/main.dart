@@ -1,7 +1,7 @@
-import 'package:Bibly/providers/auth_provider.dart';
-import 'package:Bibly/providers/reading_settings.dart';
-import 'package:Bibly/services/config_api_service.dart';
-import 'package:Bibly/services/notification_service.dart';
+import 'package:bibly/providers/auth_provider.dart';
+import 'package:bibly/providers/reading_settings.dart';
+import 'package:bibly/services/config_api_service.dart';
+import 'package:bibly/services/notification_service.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';

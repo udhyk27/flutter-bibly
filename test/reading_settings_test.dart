@@ -1,4 +1,4 @@
-import 'package:Bibly/providers/reading_settings.dart';
+import 'package:bibly/providers/reading_settings.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
