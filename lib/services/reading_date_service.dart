@@ -11,19 +11,16 @@ class ReadingDateService {
     final prefs = await SharedPreferences.getInstance();
     final saved = _load(prefs);
     final today = _fmt(DateTime.now());
-    // debugPrint('[ReadingDateService] markToday: $today, before: $saved');
     if (!saved.contains(today)) {
       saved.add(today);
       await prefs.setString(_key, jsonEncode(saved));
     }
-    // debugPrint('[ReadingDateService] markToday after: ${_load(prefs)}');
   }
 
   /// 이번 주(월~일) 읽은 날짜 Set 반환
   static Future<Set<DateTime>> checkedDaysThisWeek() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = _load(prefs);
-    // debugPrint('[ReadingDateService] checkedDaysThisWeek raw: $raw');
     final saved = raw.map(_parse).whereType<DateTime>().toSet();
 
     final now = DateTime.now();

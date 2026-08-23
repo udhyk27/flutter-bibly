@@ -28,7 +28,8 @@ class NotificationService {
     );
 
     await _plugin.initialize(
-      const InitializationSettings(android: androidSettings, iOS: iosSettings),
+      settings: const InitializationSettings(
+          android: androidSettings, iOS: iosSettings),
     );
 
     // ✅ Android 알림 채널 생성 (Android 8.0+ 필수)
@@ -77,13 +78,13 @@ class NotificationService {
 
   // ── 오늘의 말씀 알림 예약 ──────────────────────────────
   Future<void> scheduleDailyVerse(TimeOfDay time) async {
-    await _plugin.cancel(_dailyVerseId);
+    await _plugin.cancel(id: _dailyVerseId);
     await _plugin.zonedSchedule(
-      _dailyVerseId,
-      '오늘의 말씀 📖',
-      '말씀으로 하루를 시작하세요',
-      _nextInstanceOf(time),
-      const NotificationDetails(
+      id: _dailyVerseId,
+      title: '오늘의 말씀 📖',
+      body: '말씀으로 하루를 시작하세요',
+      scheduledDate: _nextInstanceOf(time),
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           'daily_verse',
           '오늘의 말씀',
@@ -95,21 +96,19 @@ class NotificationService {
         iOS: DarwinNotificationDetails(),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-      UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 
   // ── 기도 알림 예약 ────────────────────────────────────
   Future<void> schedulePrayer(TimeOfDay time) async {
-    await _plugin.cancel(_prayerId);
+    await _plugin.cancel(id: _prayerId);
     await _plugin.zonedSchedule(
-      _prayerId,
-      '기도 시간 🙏',
-      '잠시 멈추고 기도하는 시간을 가져보세요',
-      _nextInstanceOf(time),
-      const NotificationDetails(
+      id: _prayerId,
+      title: '기도 시간 🙏',
+      body: '잠시 멈추고 기도하는 시간을 가져보세요',
+      scheduledDate: _nextInstanceOf(time),
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           'prayer_reminder',
           '기도 알림',
@@ -121,15 +120,13 @@ class NotificationService {
         iOS: DarwinNotificationDetails(),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-      UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 
   // ── 알림 취소 ─────────────────────────────────────────
-  Future<void> cancelDailyVerse() => _plugin.cancel(_dailyVerseId);
-  Future<void> cancelPrayer()     => _plugin.cancel(_prayerId);
+  Future<void> cancelDailyVerse() => _plugin.cancel(id: _dailyVerseId);
+  Future<void> cancelPrayer()     => _plugin.cancel(id: _prayerId);
 
   // ── 다음 알림 시각 계산 ───────────────────────────────
   tz.TZDateTime _nextInstanceOf(TimeOfDay time) {

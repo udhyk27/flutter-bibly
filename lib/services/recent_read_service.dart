@@ -51,7 +51,6 @@ class RecentReadService {
     final raw   = prefs.getString(_key);
     if (raw == null) return [];
     final list  = jsonDecode(raw) as List;
-    // print('최근읽은 :: ${list.map((e) => RecentReadModel.fromJson(e)).toList()}');
     return list.map((e) => RecentReadModel.fromJson(e)).toList();
   }
 }

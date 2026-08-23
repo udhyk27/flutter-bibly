@@ -25,10 +25,12 @@ void main() async {
     // 디버그 빌드에서는 debug provider를 사용해야 개발 중에도 토큰이 발급된다.
     // (콘솔의 App Check에 디버그 토큰을 등록해 두어야 함)
     await FirebaseAppCheck.instance.activate(
-      androidProvider:
-          kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-      appleProvider:
-          kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
+      providerAndroid: kDebugMode
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+      providerApple: kDebugMode
+          ? const AppleDebugProvider()
+          : const AppleAppAttestProvider(),
     );
     // Remote Config는 설정 화면 등 후속 화면에서만 쓰이므로
     // 시작 지연을 피하기 위해 await하지 않고 백그라운드로 로딩한다.

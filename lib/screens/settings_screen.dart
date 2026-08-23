@@ -925,7 +925,8 @@ class _AppInfo extends StatelessWidget {
           icon: Icons.share_outlined,
           label: '앱 공유하기',
           trailing: Icon(Icons.chevron_right, size: 18, color: cs.outline),
-          onTap: () => Share.share(ConfigApiService().playStoreUrl),
+          onTap: () => SharePlus.instance
+              .share(ShareParams(text: ConfigApiService().playStoreUrl)),
         ),
         _SettingsRow(
           icon: Icons.lock_outline,
