@@ -149,9 +149,29 @@ exports.getBibleStory = onRequest(
       // 마크다운 코드블록 제거
       text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
-      const json = JSON.parse(text);
+      // 모델이 JSON 앞뒤에 설명 문구를 덧붙이는 경우가 있어,
+      // 첫 '{' 부터 마지막 '}' 까지만 잘라내 파싱한다.
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      if (start !== -1 && end !== -1 && end > start) {
+        text = text.slice(start, end + 1);
+      }
 
-      return res.status(200).json(json);
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch (parseErr) {
+        console.error("이야기 JSON 파싱 실패:", parseErr, "원문:", text);
+        return res
+          .status(502)
+          .json({ error: "AI 응답 형식 오류로 이야기를 만들지 못했습니다." });
+      }
+
+      return res.status(200).json({
+        title: json.title ?? "",
+        content: json.content ?? "",
+        reference: json.reference ?? "",
+      });
     } catch (error) {
       console.error("Gemini API 오류:", error);
       return res.status(500).json({ error: "AI 응답 중 오류가 발생했습니다." });

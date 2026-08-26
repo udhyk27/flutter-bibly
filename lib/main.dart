@@ -69,10 +69,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     return MaterialApp(
-      title: 'Bibly',
+      title: '바이블리성경',
       debugShowCheckedModeBanner: false,
       navigatorObservers: [routeObserver], // 전역 변수 사용
       theme: themeProvider.themeData,
+      // 기기의 시스템 글꼴/디스플레이 크기 설정과 무관하게
+      // 모든 기기에서 균일한 크기로 보이도록 텍스트 배율을 고정한다.
+      builder: (context, child) => MediaQuery.withNoTextScaling(
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: hasSeenOnboarding ? const MainShell() : const OnboardingScreen(),
     );
   }
