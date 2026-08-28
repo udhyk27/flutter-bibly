@@ -95,7 +95,10 @@ class NotificationService {
         ),
         iOS: DarwinNotificationDetails(),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      // 매일 정해진 시각의 말씀/기도 알림은 초 단위 정확도가 필요 없으므로
+      // 부정확(inexact) 모드를 사용한다. 정확 알람(exact)은 Android 14+에서
+      // 기본 거부되어 예약이 실패할 수 있다.
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
@@ -119,7 +122,10 @@ class NotificationService {
         ),
         iOS: DarwinNotificationDetails(),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      // 매일 정해진 시각의 말씀/기도 알림은 초 단위 정확도가 필요 없으므로
+      // 부정확(inexact) 모드를 사용한다. 정확 알람(exact)은 Android 14+에서
+      // 기본 거부되어 예약이 실패할 수 있다.
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
