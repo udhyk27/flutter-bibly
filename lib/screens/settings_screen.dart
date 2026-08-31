@@ -663,8 +663,19 @@ class _NotificationSettingsState extends State<_NotificationSettings> {
     }
   }
 
+  // 알림 권한이 거부되면 알림을 켜도 아무것도 오지 않으므로,
+  // 권한 요청 결과를 확인해 거부 시 토글을 되돌리고 안내한다.
   Future<void> _toggleDailyVerse(bool v) async {
-    if (v) await NotificationService().requestPermission();
+    if (v) {
+      final granted = await NotificationService().requestPermission();
+      if (!granted) {
+        if (!mounted) return;
+        setState(() => _dailyVerse = false);
+        await _savePrefs();
+        _showPermissionDenied();
+        return;
+      }
+    }
 
     setState(() => _dailyVerse = v);
     await _savePrefs();
@@ -677,7 +688,16 @@ class _NotificationSettingsState extends State<_NotificationSettings> {
   }
 
   Future<void> _togglePrayer(bool v) async {
-    if (v) await NotificationService().requestPermission();
+    if (v) {
+      final granted = await NotificationService().requestPermission();
+      if (!granted) {
+        if (!mounted) return;
+        setState(() => _prayerReminder = false);
+        await _savePrefs();
+        _showPermissionDenied();
+        return;
+      }
+    }
 
     setState(() => _prayerReminder = v);
     await _savePrefs();
@@ -687,6 +707,14 @@ class _NotificationSettingsState extends State<_NotificationSettings> {
     } else {
       await NotificationService().cancelPrayer();
     }
+  }
+
+  void _showPermissionDenied() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('알림 권한이 꺼져 있어요. 기기 설정에서 알림을 허용해주세요.'),
+      ),
+    );
   }
 
   @override
