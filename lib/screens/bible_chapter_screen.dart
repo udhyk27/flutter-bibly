@@ -42,11 +42,13 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
     });
     try {
       final story = await AiService.getBibleStory(widget.book.name);
+      if (!mounted) return;
       setState(() {
         _story        = story;
         _storyLoading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _storyLoading = false;
         _storyError   = true;

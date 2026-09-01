@@ -13,6 +13,8 @@ class TodayVerseCard extends StatefulWidget {
 
 class _TodayVerseCardState extends State<TodayVerseCard> {
   DailyVerseModel? _verse;
+  bool _loading = true;
+  bool _error   = false;
 
   @override
   void initState() {
@@ -21,11 +23,13 @@ class _TodayVerseCardState extends State<TodayVerseCard> {
   }
 
   Future<void> _load() async {
+    if (mounted) setState(() { _loading = true; _error = false; });
     try {
       final verse = await DailyVerseService.getToday();
-      if (mounted) setState(() => _verse = verse);
+      if (mounted) setState(() { _verse = verse; _loading = false; });
     } catch (e) {
       debugPrint('DailyVerse 오류: $e');
+      if (mounted) setState(() { _loading = false; _error = true; });
     }
   }
 
@@ -50,8 +54,8 @@ class _TodayVerseCardState extends State<TodayVerseCard> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    // 로딩 중
-    if (_verse == null) {
+    // 로딩 중 / 에러
+    if (_loading || _verse == null) {
       return Container(
         width: double.infinity,
         height: 120,
@@ -60,9 +64,18 @@ class _TodayVerseCardState extends State<TodayVerseCard> {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Center(
-          child: CircularProgressIndicator(
-            color: cs.onPrimary, strokeWidth: 2,
-          ),
+          child: _error
+              ? TextButton.icon(
+                  onPressed: _load,
+                  icon: Icon(Icons.refresh, size: 18, color: cs.onPrimary),
+                  label: Text(
+                    '다시 시도',
+                    style: TextStyle(color: cs.onPrimary),
+                  ),
+                )
+              : CircularProgressIndicator(
+                  color: cs.onPrimary, strokeWidth: 2,
+                ),
         ),
       );
     }

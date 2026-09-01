@@ -159,9 +159,14 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
       _selectedVerseId = null;
       _highlights.clear();
       _notes.clear();
+      // 장이 바뀌면 이전 장의 AI 답변/로딩 상태가 같은 절 번호에
+      // 잘못 표시되지 않도록 함께 비운다.
+      _aiAnswers.clear();
+      _aiLoading.clear();
     });
 
     await _tts.stop();
+    if (!mounted) return;
     setState(() => _isSpeaking = false);
 
     await RecentReadService.save(
@@ -183,6 +188,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
         chapter:    _currentChapter,
         bibleId:    bibleId,
       );
+      if (!mounted) return;
       setState(() {
         _chapter = chapter;
         _isLoading = false;
@@ -191,6 +197,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
       _loadHighlightsAndNotes();
       _scrollToInitialVerse(chapter);
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -200,9 +207,11 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
 
   void _scrollToInitialVerse(BibleChapterModel chapter) {
     final targetVerse = widget.initialVerseNumber;
-    if (targetVerse == null || !_listScrollController.hasClients) return;
+    if (targetVerse == null) return;
     final index = chapter.verses.indexWhere((v) => v.verse == targetVerse);
     if (index < 0) return;
+    // 리스트는 로딩 종료 후의 다음 프레임에 그려지므로, 여기서 바로
+    // hasClients를 검사하면 항상 false다. 스크롤은 프레임 이후에 시도한다.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_listScrollController.hasClients) return;
       const estimatedVerseHeight = 72.0;
@@ -226,11 +235,13 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
     setState(() => _aiLoading[verseId] = true);
     try {
       final answer = await AiService.askVerse(text);
+      if (!mounted) return;
       setState(() {
         _aiAnswers[verseId] = answer;
         _aiLoading[verseId] = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _aiAnswers[verseId] = '답변을 불러오지 못했어요. 다시 시도해주세요.';
         _aiLoading[verseId] = false;

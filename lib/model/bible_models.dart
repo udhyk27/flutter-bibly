@@ -53,7 +53,9 @@ class BibleChapterModel {
     }
 
     return BibleChapterModel(
-      book:        json['book']        ?? 0,
+      // getBible API는 책 번호를 'book_nr'로 내려주고, Hive 캐시(toJson)는
+      // 'book'으로 저장하므로 두 키를 모두 지원한다.
+      book:        json['book'] ?? json['book_nr'] ?? 0,
       chapter:     json['chapter']     ?? 0,
       translation: json['translation'] ?? '',
       verses:      verses,

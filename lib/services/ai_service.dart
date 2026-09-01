@@ -54,7 +54,7 @@ class AiService {
     debugPrint('getBibleStory 응답: ${response.body}');
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
       final story = BibleStoryModel.fromJson(data);
 
       // 캐시 저장
@@ -80,7 +80,7 @@ class AiService {
     ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
       final answer = data['answer'];
       if (answer is! String) {
         throw Exception('AI 응답 형식 오류');
@@ -106,7 +106,7 @@ class AiService {
     ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
       final answer = data['answer'];
       if (answer is! String) {
         throw Exception('AI 응답 형식 오류');

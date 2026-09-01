@@ -33,13 +33,19 @@ class _RecentSectionState extends State<RecentSection> {
   }
 
   String _timeAgo(int timestamp) {
-    final diff = DateTime.now()
-        .difference(DateTime.fromMillisecondsSinceEpoch(timestamp));
+    final now  = DateTime.now();
+    final then = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final diff = now.difference(then);
     if (diff.inMinutes < 60) return '방금 전';
-    if (diff.inHours   < 24) return '오늘';
-    if (diff.inDays    == 1) return '어제';
-    if (diff.inDays    <  7) return '${diff.inDays}일 전';
-    return '${(diff.inDays / 7).floor()}주 전';
+
+    // "오늘/어제"는 경과 시간이 아니라 달력 날짜 기준으로 판단한다.
+    final today     = DateTime(now.year, now.month, now.day);
+    final thatDay   = DateTime(then.year, then.month, then.day);
+    final dayDiff   = today.difference(thatDay).inDays;
+    if (dayDiff <= 0) return '오늘';
+    if (dayDiff == 1) return '어제';
+    if (dayDiff <  7) return '$dayDiff일 전';
+    return '${(dayDiff / 7).floor()}주 전';
   }
 
   void _goToReading(RecentReadModel item) {

@@ -21,7 +21,9 @@ class _WebViewScreenState extends State<WebViewScreen> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(NavigationDelegate(
-        onPageFinished: (_) => setState(() => _isLoading = false),
+        onPageFinished: (_) {
+          if (mounted) setState(() => _isLoading = false);
+        },
       ))
       ..loadRequest(Uri.parse(widget.url));
   }

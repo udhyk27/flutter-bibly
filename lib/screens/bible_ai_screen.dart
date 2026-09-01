@@ -55,14 +55,18 @@ class _BibleAiScreenState extends State<BibleAiScreen> {
         verse: widget.verse ?? '',
         question: question,
       );
+      if (!mounted) return;
       setState(() => _messages.add(_ChatMessage(text: answer, isUser: false)));
     } catch (e) {
+      if (!mounted) return;
       setState(() => _messages.add(
             _ChatMessage(text: '오류가 발생했습니다. 다시 시도해주세요.', isUser: false),
           ));
     } finally {
-      setState(() => _isLoading = false);
-      _scrollToBottom();
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _scrollToBottom();
+      }
     }
   }
 

@@ -145,7 +145,13 @@ class _AccountSheetState extends State<_AccountSheet> {
               child: OutlinedButton(
                 onPressed: _loading ? null : () async {
                   setState(() => _loading = true);
-                  await auth.signOut();
+                  try {
+                    await auth.signOut();
+                  } catch (_) {
+                    // 로그아웃 실패 시에도 시트가 잠기지 않도록 복구한다.
+                  } finally {
+                    if (mounted) setState(() => _loading = false);
+                  }
                   if (context.mounted) Navigator.pop(context);
                 },
                 child: const Text('로그아웃'),

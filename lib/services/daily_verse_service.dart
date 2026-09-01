@@ -50,12 +50,16 @@ class DailyVerseService {
   /// 1월 1일 = day 1, 12월 31일 = day 365
   static Future<DailyVerseModel> getToday() async {
     final all = await _loadAll();
+    if (all.isEmpty) {
+      throw StateError('daily_verses.json 이 비어 있습니다.');
+    }
     final now = DateTime.now();
     // 1월 1일부터 몇 번째 날인지 계산
     final startOfYear = DateTime(now.year, 1, 1);
     final dayOfYear   = now.difference(startOfYear).inDays + 1;
-    // 365개 범위 내로 순환 (윤년 대비)
-    final index = (dayOfYear - 1) % all.length;
+    // 윤년의 12월 31일(366일째)이 1월 1일 구절로 되돌아가지 않도록
+    // 마지막 인덱스로 고정한다.
+    final index = (dayOfYear - 1).clamp(0, all.length - 1);
     return all[index];
   }
 }
