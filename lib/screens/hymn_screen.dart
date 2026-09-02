@@ -399,6 +399,8 @@ class _HymnDetailScreenState extends State<HymnDetailScreen> {
   bool   _isPlaying    = false;
   int    _currentVerse = 0;
   double _fontSize     = 17;
+  // 재생 세션 토큰 — 정지/이동/해제 시 증가시켜 진행 중이던 낭독 루프를 무효화한다.
+  int    _playToken    = 0;
 
   final FlutterTts _tts = FlutterTts();
 
@@ -413,34 +415,34 @@ class _HymnDetailScreenState extends State<HymnDetailScreen> {
 
   Future<void> _initTts() async {
     await _tts.setLanguage('ko-KR');
+    // speak()가 "낭독 완료" 시점에 완료되도록 한다. 이 설정이 없으면
+    // speak()는 낭독 시작 즉시 반환되어 절/후렴 순서를 제어할 수 없다.
+    await _tts.awaitSpeakCompletion(true);
     await _tts.setSpeechRate(0.42);
     await _tts.setVolume(1.0);
     await _tts.setPitch(0.92);
-    _tts.setCompletionHandler(_onVerseComplete);
     _tts.setErrorHandler((_) {
       if (mounted) setState(() => _isPlaying = false);
     });
   }
 
-  void _onVerseComplete() {
-    if (!mounted || !_isPlaying) return;
-    // 후렴이 있으면 절 뒤에 후렴 낭독
-    if (widget.hymn.chorus != null) {
-      _tts.speak(widget.hymn.chorus!).then((_) {
-        _advanceVerse();
-      });
-    } else {
-      _advanceVerse();
-    }
-  }
+  // 절(+후렴)을 순서대로 낭독한다. 완료 콜백 대신 await 루프로 제어해
+  // 후렴이 끊기거나 중복 재생되던 문제를 없앤다.
+  Future<void> _playFrom(int start, int token) async {
+    for (int i = start; i < widget.hymn.verses.length; i++) {
+      if (!mounted || !_isPlaying || token != _playToken) return;
+      setState(() => _currentVerse = i);
+      await _tts.speak(widget.hymn.verses[i]);
+      if (!mounted || !_isPlaying || token != _playToken) return;
 
-  void _advanceVerse() {
-    if (!mounted || !_isPlaying) return;
-    if (_currentVerse < widget.hymn.verses.length - 1) {
-      setState(() => _currentVerse++);
-      _tts.speak(widget.hymn.verses[_currentVerse]);
-    } else {
-      // 마지막 절 완료
+      final chorus = widget.hymn.chorus;
+      if (chorus != null && chorus.isNotEmpty) {
+        await _tts.speak(chorus);
+        if (!mounted || !_isPlaying || token != _playToken) return;
+      }
+    }
+    // 전체 완료
+    if (mounted && token == _playToken) {
       setState(() {
         _isPlaying    = false;
         _currentVerse = 0;
@@ -449,11 +451,13 @@ class _HymnDetailScreenState extends State<HymnDetailScreen> {
   }
 
   Future<void> _play() async {
+    final token = ++_playToken;
     setState(() => _isPlaying = true);
-    await _tts.speak(widget.hymn.verses[_currentVerse]);
+    await _playFrom(_currentVerse, token);
   }
 
   Future<void> _pause() async {
+    _playToken++; // 진행 중이던 낭독 루프 무효화
     await _tts.stop();
     if (mounted) setState(() => _isPlaying = false);
   }
@@ -468,6 +472,7 @@ class _HymnDetailScreenState extends State<HymnDetailScreen> {
 
   Future<void> _goToVerse(int index) async {
     final wasPlaying = _isPlaying;
+    _playToken++; // 진행 중이던 낭독 루프 무효화
     await _tts.stop();
     setState(() {
       _currentVerse = index;
@@ -478,6 +483,7 @@ class _HymnDetailScreenState extends State<HymnDetailScreen> {
 
   @override
   void dispose() {
+    _playToken++; // 진행 중이던 낭독 루프 무효화
     _tts.stop();
     super.dispose();
   }
