@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -60,10 +61,11 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
   BannerAd? _bannerAd;
   bool _isBannerAdReady = false;
 
-  // 테스트 ID — 출시 전 실제 ID로 교체
-  // Android: ca-app-pub-3940256099942544/6300978111
-  // iOS:     ca-app-pub-3940256099942544/2934735716
-  static const String _adUnitId = 'ca-app-pub-3940256099942544/6300978111';
+  // 테스트 ID — 출시 전 실제 ID로 교체.
+  // 플랫폼별로 다른 배너 유닛을 사용한다.
+  static String get _adUnitId => Platform.isIOS
+      ? 'ca-app-pub-3940256099942544/2934735716' // iOS 테스트 배너
+      : 'ca-app-pub-3940256099942544/6300978111'; // Android 테스트 배너
 
   @override
   void initState() {
