@@ -282,6 +282,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
         genre: widget.book.genre,
       );
     }
+    if (!mounted) return;
     setState(() => _isFavorite = !_isFavorite);
   }
 
