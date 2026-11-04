@@ -35,13 +35,16 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
   }
 
   Future<void> _delete(FavoriteModel fav) async {
+    // Dismissible은 dismiss 직후 항목이 목록에서 사라져 있어야 하므로
+    // 먼저 동기적으로 제거한 뒤, 영구 저장소에서 비동기로 삭제한다.
+    setState(() {
+      _favorites = _favorites.where((f) => f.key != fav.key).toList();
+    });
     if (fav.isVerseFavorite) {
       await FavoriteService.removeVerse(fav.bookId, fav.chapter, fav.verse!);
     } else {
       await FavoriteService.remove(fav.bookId, fav.chapter);
     }
-    final list = await FavoriteService.getAll();
-    if (mounted) setState(() => _favorites = list);
   }
 
   BibleBookModel? _findBook(String bookId) {

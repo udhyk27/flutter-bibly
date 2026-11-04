@@ -291,6 +291,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
     if (verse == null) return;
     if (_verseFavorites.contains(verse)) {
       await FavoriteService.removeVerse(widget.book.id, _currentChapter, verse);
+      if (!mounted) return;
       setState(() => _verseFavorites.remove(verse));
     } else {
       await FavoriteService.addVerse(
@@ -304,6 +305,7 @@ class _BibleReadingScreenState extends State<BibleReadingScreen> {
         verse:           verse,
         verseText:       verseText,
       );
+      if (!mounted) return;
       setState(() => _verseFavorites.add(verse));
     }
   }
